@@ -23,8 +23,9 @@ jobs:
     - name: Run cargo-tarpaulin
       uses: actions-rs/tarpaulin@v0.1
       with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           version: 0.16.0
           args: --ignore-tests
     - name: Upload coverage reports to Codecov with GitHub Action
       uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}

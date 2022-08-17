@@ -1,5 +1,8 @@
 ## Performance-oriented Less Greedy Decision Trees
 
+![Build](https://github.com/haroldks/performance-less-greedy-trees/actions/workflows/rust.yml/badge.svg)
+![Coverage](https://github.com/haroldks/performance-less-greedy-trees/actions/workflows/rust.yml/badge.svg)
+
 
 #### TODO
 

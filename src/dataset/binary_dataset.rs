@@ -2,8 +2,7 @@ use self::super::data_trait::Dataset;
 use super::data_types::Data;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::fs::File;
-use std::io::{BufRead, BufReader, Error};
+use std::collections::HashSet;
 
 struct BinaryDataset {
     filename: String,
@@ -12,6 +11,7 @@ struct BinaryDataset {
     train: Data,
     test: Option<Data>,
     size: usize,
+    num_labels: usize,
 }
 
 impl Dataset for BinaryDataset {
@@ -26,11 +26,15 @@ impl Dataset for BinaryDataset {
         let test_size = (size as f64 * split) as usize;
 
         let test = match test_size >= 1 {
-            true => Some(data.drain(0..test_size).collect::<Vec<String>>()),
+            true => Some(BinaryDataset::create_set(data.drain(0..test_size).collect::<Vec<String>>())),
             false => None,
         };
 
         let train = data.drain(test_size..).collect::<Vec<String>>();
+
+        let train = BinaryDataset::create_set(train);
+
+        let num_labels = train.0.iter().collect::<HashSet<_>>().len();
 
         Self {
             filename: filename.to_string(),
@@ -39,6 +43,7 @@ impl Dataset for BinaryDataset {
             train,
             test,
             size,
+            num_labels,
         }
     }
 
@@ -46,12 +51,20 @@ impl Dataset for BinaryDataset {
         self.size
     }
 
-    fn partition_size(&self, label: usize) -> usize {
-        todo!()
-    }
-
     fn num_labels(&self) -> usize {
-        todo!()
+        self.num_labels
+    }
+}
+
+impl BinaryDataset {
+    fn create_set(data: Vec<String>) -> Data {
+        let data = data
+            .iter()
+            .map(|line| line.split_whitespace().map(|y| y.parse().unwrap()).collect::<Vec<u8>>())
+            .collect::<Vec<Vec<u8>>>();
+        let targets = data.iter().map(|row| row[0]).collect::<Vec<u8>>();
+        let rows = data.iter().map(|row| row[1..].to_vec()).collect::<Vec<Vec<u8>>>();
+        (targets, rows)
     }
 }
 
@@ -59,16 +72,15 @@ impl Dataset for BinaryDataset {
 mod test_binary_dataset {
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
-    use std::io::Error;
     use std::panic;
 
     #[test]
     fn can_open_file() {
         let dataset = BinaryDataset::open_file("datasets/small.txt");
 
-        let dataset = match dataset {
+        let _dataset = match dataset {
             Ok(file) => file,
-            Err(error) => {
+            Err(_error) => {
                 panic!("Should not panic")
             }
         };
@@ -79,9 +91,9 @@ mod test_binary_dataset {
     fn missing_file() {
         let dataset = BinaryDataset::open_file("datasets/missing.txt");
 
-        let dataset = match dataset {
+        let _dataset = match dataset {
             Ok(file) => file,
-            Err(error) => {
+            Err(_error) => {
                 panic!("Missing File")
             }
         };
@@ -109,11 +121,28 @@ mod test_binary_dataset {
 
     #[test]
     fn binary_dataset_no_shuffle_and_half_split() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.5);
+        let mut dataset = BinaryDataset::load("datasets/small.txt", false, 0.5);
         assert_eq!(dataset.test.is_some(), true);
-        let data_ref = dataset.test.as_ref().unwrap();
-        assert_eq!(data_ref.len(), dataset.size / 2);
-        let content = vec!["0 1 0 1", "0 0 1 1"];
-        assert_eq!(data_ref.iter().eq(content.iter()), true);
+        let data = dataset.test.take().unwrap();
+        let rows = data.1;
+        assert_eq!(data.0.len(), dataset.size / 2);
+        let content = vec![vec![1, 0, 1], vec![0, 1, 1]];
+        println!("{:?}", rows);
+        assert_eq!(rows.iter().eq(content.iter()), true);
+    }
+
+    #[test]
+    fn binary_dataset_shuffled_and_half_split() {
+        let mut dataset = BinaryDataset::load("datasets/small.txt", true, 0.25);
+        assert_eq!(dataset.test.is_some(), true);
+        let data = dataset.test.take().unwrap();
+        assert_eq!(data.0.len(), 1);
+    }
+
+    #[test]
+    fn binary_dataset_size_and_label() {
+        let dataset = BinaryDataset::load("datasets/small.txt", true, 0.0);
+        assert_eq!(dataset.size, 4);
+        assert_eq!(dataset.num_labels, 2);
     }
 }

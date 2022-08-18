@@ -6,8 +6,6 @@ pub trait Dataset {
 
     fn size(&self) -> usize;
 
-    fn partition_size(&self, label: usize) -> usize;
-
     fn num_labels(&self) -> usize;
 
     fn open_file(filename: &str) -> Result<Vec<String>, Error> {

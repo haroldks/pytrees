@@ -28,18 +28,15 @@ impl Dataset for BinaryDataset {
         let test_size = (size as f64 * split) as usize;
 
         let test = match test_size >= 1 {
-            true => Some(BinaryDataset::create_set(data.drain(0..test_size).collect::<Vec<String>>())),
+            true => Some(BinaryDataset::create_set(
+                data.drain(0..test_size).collect::<Vec<String>>(),
+            )),
             false => None,
         };
 
-        let train = data.drain(test_size..).collect::<Vec<String>>();
-
-        let train = BinaryDataset::create_set(train);
-
+        let train = BinaryDataset::create_set(data);
         let train_size = train.0.len();
-
         let num_attributes = train.1[0].len();
-
         let num_labels = train.0.iter().collect::<HashSet<_>>().len();
 
         Self {
@@ -80,10 +77,17 @@ impl BinaryDataset {
     fn create_set(data: Vec<String>) -> Data {
         let data = data
             .iter()
-            .map(|line| line.split_whitespace().map(|y| y.parse().unwrap()).collect::<Vec<usize>>())
+            .map(|line| {
+                line.split_whitespace()
+                    .map(|y| y.parse().unwrap())
+                    .collect::<Vec<usize>>()
+            })
             .collect::<Vec<Vec<usize>>>();
         let targets = data.iter().map(|row| row[0]).collect::<Vec<usize>>();
-        let rows = data.iter().map(|row| row[1..].to_vec()).collect::<Vec<Vec<usize>>>();
+        let rows = data
+            .iter()
+            .map(|row| row[1..].to_vec())
+            .collect::<Vec<Vec<usize>>>();
         (targets, rows)
     }
 }

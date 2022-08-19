@@ -1,6 +1,8 @@
 use crate::dataset::data_trait::Dataset;
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{HBSStackState, HBSState, HorizontalData, Item, Position, Support};
+use crate::structures::structures_types::{
+    HBSStackState, HBSState, HorizontalData, Item, Position, Support,
+};
 
 struct HorizontalBinaryStructure {
     input: HorizontalData,

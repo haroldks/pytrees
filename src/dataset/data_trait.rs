@@ -18,6 +18,9 @@ pub trait Dataset {
     fn open_file(filename: &str) -> Result<Vec<String>, Error> {
         let input = File::open(&filename)?; //Error Handling for missing filename
         let buffered = BufReader::new(input); // Buffer for the file
-        Ok(buffered.lines().map(|x| x.unwrap()).collect::<Vec<String>>())
+        Ok(buffered
+            .lines()
+            .map(|x| x.unwrap())
+            .collect::<Vec<String>>())
     }
 }

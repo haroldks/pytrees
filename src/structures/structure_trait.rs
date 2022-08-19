@@ -1,4 +1,3 @@
-use crate::dataset::data_trait::Dataset;
 use crate::structures::structures_types::{Item, Support};
 
 pub(crate) trait Structure {

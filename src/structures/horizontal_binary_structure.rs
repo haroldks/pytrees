@@ -44,7 +44,7 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
     }
 
     fn backtrack(&mut self) {
-        if self.position.len() > 0 {
+        if self.position.is_empty() {
             self.position.pop();
             self.state.pop();
             self.support();

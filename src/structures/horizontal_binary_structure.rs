@@ -80,6 +80,7 @@ impl Structure for HorizontalBinaryStructure {
         if self.position.len() > 0 {
             self.position.pop();
             self.state.pop();
+            self.support();
         }
     }
 
@@ -148,6 +149,42 @@ mod test_horizontal_binary_structure {
         let state = data_structure.get_last_state();
         if let Some(state) = state {
             assert_eq!(state.iter().eq(true_state.iter()), true);
+        }
+    }
+    #[test]
+    fn backtracking() {
+        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        let mut data_structure = HorizontalBinaryStructure::new(dataset);
+
+        let mut position = [(2usize, 1usize), (0, 1)];
+        let real_state = vec![vec![0usize], vec![]];
+
+        data_structure.push((2, 1));
+        data_structure.push((0, 1));
+        assert_eq!(data_structure.position.len(), 2);
+        assert_eq!(data_structure.position.iter().eq(position.iter()), true);
+        assert_eq!(data_structure.support, 1);
+        assert_eq!(data_structure.label_support(0), 1);
+        assert_eq!(data_structure.label_support(1), 0);
+        let state = data_structure.get_last_state();
+        if let Some(state) = state {
+            assert_eq!(state.iter().eq(real_state.iter()), true);
+        }
+
+        data_structure.backtrack();
+        println!("{:?}", data_structure.get_last_state());
+        let position = [position[0]];
+        assert_eq!(data_structure.position.len(), 1);
+        assert_eq!(data_structure.position.iter().eq(position.iter()), true);
+        assert_eq!(data_structure.support, 2);
+        assert_eq!(data_structure.label_support(0), 2);
+        assert_eq!(data_structure.label_support(1), 0);
+
+        let real_state = vec![vec![0usize, 1], vec![]];
+
+        let state = data_structure.get_last_state();
+        if let Some(state) = state {
+            assert_eq!(state.iter().eq(real_state.iter()), true);
         }
     }
 }

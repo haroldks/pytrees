@@ -140,6 +140,8 @@ mod test_binary_dataset {
     #[test]
     fn binary_dataset_no_shuffle_and_no_split() {
         let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        assert_eq!(dataset.filename, "datasets/small.txt");
+        assert_eq!(dataset.shuffle, false);
         assert_eq!(dataset.test.is_none(), true);
     }
 

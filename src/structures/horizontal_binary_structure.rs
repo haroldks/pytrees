@@ -4,45 +4,16 @@ use crate::structures::structures_types::{
     HBSStackState, HBSState, HorizontalData, Item, Position, Support,
 };
 
-struct HorizontalBinaryStructure {
-    input: HorizontalData,
+#[derive(Clone)]
+struct HorizontalBinaryStructure<'data> {
+    input: &'data HorizontalData,
     support: Support,
     num_labels: usize,
     position: Position,
     state: HBSStackState,
 }
 
-impl Structure for HorizontalBinaryStructure {
-    fn new<T>(data: T) -> Self
-    where
-        T: Dataset,
-    {
-        let data_ref = data.get_train();
-        let num_labels = data.num_labels();
-        let size = data.train_size();
-        let mut inputs = vec![vec![]; num_labels];
-
-        for i in 0..size {
-            inputs[data_ref.0[i]].push(data_ref.1[i].clone());
-        }
-
-        let mut state = HBSStackState::new();
-
-        let mut initial_state = HBSState::new();
-        for i in 0..num_labels {
-            initial_state.push((0..inputs[i].len()).collect::<Vec<usize>>())
-        }
-        state.push(initial_state);
-
-        HorizontalBinaryStructure {
-            input: inputs,
-            support: size,
-            num_labels,
-            position: vec![],
-            state,
-        }
-    }
-
+impl<'data> Structure for HorizontalBinaryStructure<'data> {
     fn num_labels(&self) -> usize {
         self.num_labels
     }
@@ -55,10 +26,6 @@ impl Structure for HorizontalBinaryStructure {
             }
         }
         support
-    }
-
-    fn get_last_state(&self) -> Option<&HBSState> {
-        self.state.last()
     }
 
     fn support(&mut self) -> usize {
@@ -91,7 +58,47 @@ impl Structure for HorizontalBinaryStructure {
     }
 }
 
-impl HorizontalBinaryStructure {
+impl<'data> HorizontalBinaryStructure<'data> {
+    fn format_input_data<T>(data: &T) -> HorizontalData
+    where
+        T: Dataset,
+    {
+        let data_ref = data.get_train();
+        let num_labels = data.num_labels();
+        let size = data.train_size();
+        let mut inputs = vec![vec![]; num_labels];
+
+        for i in 0..size {
+            inputs[data_ref.0[i]].push(data_ref.1[i].clone());
+        }
+
+        inputs
+    }
+
+    fn new(inputs: &'data HorizontalData) -> Self {
+        let mut state = HBSStackState::new();
+
+        let mut initial_state = HBSState::new();
+        for i in 0..inputs.len() {
+            initial_state.push((0..inputs[i].len()).collect::<Vec<usize>>())
+        }
+        state.push(initial_state);
+
+        let mut structure = HorizontalBinaryStructure {
+            input: inputs,
+            support: Support::MAX,
+            num_labels: inputs.len(),
+            position: vec![],
+            state,
+        };
+        structure.support();
+        structure
+    }
+
+    fn get_last_state(&self) -> Option<&HBSState> {
+        self.state.last()
+    }
+
     fn pushing(&mut self, item: Item) {
         let mut new_state = HBSState::new();
         if let Some(last) = self.get_last_state() {
@@ -121,7 +128,8 @@ mod test_horizontal_binary_structure {
     #[test]
     fn load_horizontal_structure() {
         let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
-        let data_structure = HorizontalBinaryStructure::new(dataset);
+        let horizontal_data = HorizontalBinaryStructure::format_input_data(&dataset);
+        let data_structure = HorizontalBinaryStructure::new(&horizontal_data);
         let state = [[[0usize, 1], [0, 1]]];
         let input = [[[1usize, 0, 1], [0, 1, 1]], [[0, 0, 0], [0, 1, 0]]];
 
@@ -136,7 +144,8 @@ mod test_horizontal_binary_structure {
     #[test]
     fn moving_one_step() {
         let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
-        let mut data_structure = HorizontalBinaryStructure::new(dataset);
+        let horizontal_data = HorizontalBinaryStructure::format_input_data(&dataset);
+        let mut data_structure = HorizontalBinaryStructure::new(&horizontal_data);
         let position = [(0usize, 0usize)];
         let true_state = vec![vec![1usize], vec![0, 1]];
 
@@ -154,9 +163,10 @@ mod test_horizontal_binary_structure {
     #[test]
     fn backtracking() {
         let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
-        let mut data_structure = HorizontalBinaryStructure::new(dataset);
+        let horizontal_data = HorizontalBinaryStructure::format_input_data(&dataset);
+        let mut data_structure = HorizontalBinaryStructure::new(&horizontal_data);
 
-        let mut position = [(2usize, 1usize), (0, 1)];
+        let position = [(2usize, 1usize), (0, 1)];
         let real_state = vec![vec![0usize], vec![]];
 
         data_structure.push((2, 1));
@@ -172,7 +182,6 @@ mod test_horizontal_binary_structure {
         }
 
         data_structure.backtrack();
-        println!("{:?}", data_structure.get_last_state());
         let position = [position[0]];
         assert_eq!(data_structure.position.len(), 1);
         assert_eq!(data_structure.position.iter().eq(position.iter()), true);

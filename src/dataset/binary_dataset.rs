@@ -4,14 +4,16 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::HashSet;
 
-struct BinaryDataset {
+pub(crate) struct BinaryDataset {
     filename: String,
     shuffle: bool,
     split: f64,
     train: Data,
     test: Option<Data>,
     size: usize,
+    train_size: usize,
     num_labels: usize,
+    num_attributes: usize,
 }
 
 impl Dataset for BinaryDataset {
@@ -34,6 +36,10 @@ impl Dataset for BinaryDataset {
 
         let train = BinaryDataset::create_set(train);
 
+        let train_size = train.0.len();
+
+        let num_attributes = train.1[0].len();
+
         let num_labels = train.0.iter().collect::<HashSet<_>>().len();
 
         Self {
@@ -43,7 +49,9 @@ impl Dataset for BinaryDataset {
             train,
             test,
             size,
+            train_size,
             num_labels,
+            num_attributes,
         }
     }
 
@@ -51,8 +59,20 @@ impl Dataset for BinaryDataset {
         self.size
     }
 
+    fn train_size(&self) -> usize {
+        self.train_size
+    }
+
     fn num_labels(&self) -> usize {
         self.num_labels
+    }
+
+    fn num_attributes(&self) -> usize {
+        self.num_attributes
+    }
+
+    fn get_train(&self) -> &Data {
+        &self.train
     }
 }
 
@@ -60,10 +80,10 @@ impl BinaryDataset {
     fn create_set(data: Vec<String>) -> Data {
         let data = data
             .iter()
-            .map(|line| line.split_whitespace().map(|y| y.parse().unwrap()).collect::<Vec<u8>>())
-            .collect::<Vec<Vec<u8>>>();
-        let targets = data.iter().map(|row| row[0]).collect::<Vec<u8>>();
-        let rows = data.iter().map(|row| row[1..].to_vec()).collect::<Vec<Vec<u8>>>();
+            .map(|line| line.split_whitespace().map(|y| y.parse().unwrap()).collect::<Vec<usize>>())
+            .collect::<Vec<Vec<usize>>>();
+        let targets = data.iter().map(|row| row[0]).collect::<Vec<usize>>();
+        let rows = data.iter().map(|row| row[1..].to_vec()).collect::<Vec<Vec<usize>>>();
         (targets, rows)
     }
 }

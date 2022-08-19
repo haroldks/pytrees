@@ -1,1 +1,1 @@
-pub type Data = (Vec<u8>, Vec<Vec<u8>>);
+pub type Data = (Vec<usize>, Vec<Vec<usize>>);

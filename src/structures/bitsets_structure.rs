@@ -52,12 +52,12 @@ impl<'data> BitsetStructure<'data> {
 mod test_bitsets {
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
-    use crate::structures::bitsets_structure::Bitsets;
+    use crate::structures::bitsets_structure::BitsetStructure;
 
     #[test]
     fn load_bitset_data() {
         let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
-        let bitset_data = Bitsets::format_input_data(&dataset);
+        let bitset_data = BitsetStructure::format_input_data(&dataset);
         println!("{:?}", bitset_data.inputs);
         println!("{:?}", bitset_data.targets);
     }

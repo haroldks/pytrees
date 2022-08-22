@@ -15,6 +15,8 @@ pub type BitsetMatrix = Vec<Bitset>;
 pub struct BitsetStructData {
     pub(crate) inputs: BitsetMatrix,
     pub(crate) targets: BitsetMatrix,
+    pub(crate) chunks: usize,
+    pub(crate) size: usize,
 }
 
 pub type BitsetStackState = Vec<Bitset>;

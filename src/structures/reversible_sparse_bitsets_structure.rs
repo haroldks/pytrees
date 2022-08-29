@@ -6,7 +6,7 @@ use crate::structures::structures_types::{
 };
 
 #[derive(Clone)]
-struct RSparseBitsetStructure<'data> {
+pub struct RSparseBitsetStructure<'data> {
     inputs: &'data BitsetStructData,
     support: Support,
     num_labels: usize,
@@ -78,14 +78,14 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
 }
 
 impl<'data> RSparseBitsetStructure<'data> {
-    fn format_input_data<T>(data: &T) -> BitsetStructData
+    pub fn format_input_data<T>(data: &T) -> BitsetStructData
     where
         T: Dataset,
     {
         BitsetStructure::format_input_data(data)
     }
 
-    fn new(inputs: &'data BitsetStructData) -> Self {
+    pub fn new(inputs: &'data BitsetStructData) -> Self {
         let index = (0..inputs.chunks).collect::<Vec<usize>>();
 
         let mut state = BitsetStackState::new();

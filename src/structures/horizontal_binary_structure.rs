@@ -5,7 +5,7 @@ use crate::structures::structures_types::{
 };
 
 #[derive(Clone)]
-struct HorizontalBinaryStructure<'data> {
+pub struct HorizontalBinaryStructure<'data> {
     input: &'data HorizontalData,
     support: Support,
     num_labels: usize,
@@ -59,7 +59,7 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
 }
 
 impl<'data> HorizontalBinaryStructure<'data> {
-    fn format_input_data<T>(data: &T) -> HorizontalData
+    pub fn format_input_data<T>(data: &T) -> HorizontalData
     where
         T: Dataset,
     {
@@ -75,7 +75,7 @@ impl<'data> HorizontalBinaryStructure<'data> {
         inputs
     }
 
-    fn new(inputs: &'data HorizontalData) -> Self {
+    pub fn new(inputs: &'data HorizontalData) -> Self {
         let mut state = HBSStackState::new();
 
         let mut initial_state = HBSState::new();

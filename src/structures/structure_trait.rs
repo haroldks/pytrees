@@ -1,6 +1,6 @@
 use crate::structures::structures_types::{Item, Support};
 
-pub(crate) trait Structure {
+pub trait Structure {
     fn num_labels(&self) -> usize;
     fn label_support(&self, label: usize) -> Support;
     fn support(&mut self) -> Support;

@@ -11,6 +11,6 @@
 
 extern crate core;
 
-mod dataset;
+pub mod dataset;
 mod main;
-mod structures;
+pub mod structures;

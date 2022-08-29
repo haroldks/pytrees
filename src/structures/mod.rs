@@ -1,5 +1,5 @@
-mod bitsets_structure;
-mod horizontal_binary_structure;
-mod reversible_sparse_bitsets_structure;
-mod structure_trait;
-mod structures_types;
+pub mod bitsets_structure;
+pub mod horizontal_binary_structure;
+pub mod reversible_sparse_bitsets_structure;
+pub mod structure_trait;
+pub mod structures_types;

@@ -5,7 +5,7 @@ use crate::structures::structures_types::{
 };
 
 #[derive(Clone)]
-pub(crate) struct BitsetStructure<'data> {
+pub struct BitsetStructure<'data> {
     inputs: &'data BitsetStructData,
     support: Support,
     num_labels: usize,
@@ -67,7 +67,7 @@ impl<'data> Structure for BitsetStructure<'data> {
 }
 
 impl<'data> BitsetStructure<'data> {
-    pub(crate) fn format_input_data<T>(data: &T) -> BitsetStructData
+    pub fn format_input_data<T>(data: &T) -> BitsetStructData
     where
         T: Dataset,
     {
@@ -106,7 +106,7 @@ impl<'data> BitsetStructure<'data> {
         }
     }
 
-    fn new(inputs: &'data BitsetStructData) -> Self {
+    pub fn new(inputs: &'data BitsetStructData) -> Self {
         let mut state = BitsetStackState::new();
         let mut inital_state: Bitset = vec![<u64>::MAX; inputs.chunks];
 

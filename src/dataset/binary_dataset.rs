@@ -4,7 +4,7 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::HashSet;
 
-pub(crate) struct BinaryDataset {
+pub struct BinaryDataset {
     filename: String,
     shuffle: bool,
     split: f64,

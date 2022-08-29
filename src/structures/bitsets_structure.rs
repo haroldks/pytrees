@@ -5,7 +5,7 @@ use crate::structures::structures_types::{
 };
 
 #[derive(Clone)]
-struct BitsetStructure<'data> {
+pub(crate) struct BitsetStructure<'data> {
     inputs: &'data BitsetStructData,
     support: Support,
     num_labels: usize,
@@ -26,8 +26,8 @@ impl<'data> Structure for BitsetStructure<'data> {
                 let label_bitset = &self.inputs.targets[label];
                 for (i, label_chunk) in label_bitset.iter().enumerate() {
                     count += (*label_chunk & state[i]).count_ones();
-                    return count as Support;
                 }
+                return count as Support;
             }
         }
         support
@@ -67,7 +67,7 @@ impl<'data> Structure for BitsetStructure<'data> {
 }
 
 impl<'data> BitsetStructure<'data> {
-    fn format_input_data<T>(data: &T) -> BitsetStructData
+    pub(crate) fn format_input_data<T>(data: &T) -> BitsetStructData
     where
         T: Dataset,
     {

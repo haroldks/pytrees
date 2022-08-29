@@ -174,3 +174,4 @@ datasets/*
 !datasets/small.txt
 !datasets/small_.txt
 !datasets/anneal.txt
+!datasets/rsparse_dataset.txt

@@ -39,7 +39,7 @@ impl<'data> Structure for BitsetStructure<'data> {
     }
 
     fn labels_support(&self) -> Vec<Support> {
-        let mut support = vec![];
+        let mut support = Vec::with_capacity(self.num_labels);
         if let Some(state) = self.get_last_state() {
             for label in 0..self.num_labels {
                 let mut count = 0;
@@ -84,6 +84,14 @@ impl<'data> Structure for BitsetStructure<'data> {
         self.backtrack();
         support
     }
+
+    fn reset(&mut self) {
+        self.position = Vec::with_capacity(self.num_attributes);
+        let mut state = BitsetStackState::with_capacity(self.num_attributes);
+        state.push(self.state[0].clone());
+        self.state = state;
+        self.support();
+    }
 }
 
 impl<'data> BitsetStructure<'data> {
@@ -127,7 +135,8 @@ impl<'data> BitsetStructure<'data> {
     }
 
     pub fn new(inputs: &'data BitsetStructData) -> Self {
-        let mut state = BitsetStackState::new();
+        let num_attributes = inputs.inputs.len();
+        let mut state = BitsetStackState::with_capacity(num_attributes);
         let mut inital_state: Bitset = vec![<u64>::MAX; inputs.chunks];
 
         if !(inputs.size % 64 == 0) {
@@ -147,7 +156,7 @@ impl<'data> BitsetStructure<'data> {
             support: Support::MAX,
             num_attributes: inputs.inputs.len(),
             num_labels: inputs.targets.len(),
-            position: vec![],
+            position: Vec::with_capacity(num_attributes),
             state,
         };
 

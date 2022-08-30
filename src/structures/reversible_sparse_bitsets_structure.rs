@@ -50,7 +50,7 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
 
     fn labels_support(&self) -> Vec<Support> {
         let state = &self.state;
-        let mut support = vec![];
+        let mut support = Vec::with_capacity(self.num_labels);
         if let Some(limit) = self.limit.last() {
             for label in 0..self.num_labels {
                 let mut count = 0;
@@ -117,6 +117,19 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
         self.backtrack();
         support
     }
+
+    fn reset(&mut self) {
+        self.position = Vec::with_capacity(self.num_attributes);
+        self.limit = Vec::with_capacity(self.num_attributes);
+        self.limit.push((self.inputs.chunks - 1) as isize);
+        let state = self
+            .state
+            .iter()
+            .map(|stack| vec![stack[0]])
+            .collect::<Vec<Bitset>>();
+        self.state = state;
+        self.support();
+    }
 }
 
 impl<'data> RSparseBitsetStructure<'data> {
@@ -130,9 +143,13 @@ impl<'data> RSparseBitsetStructure<'data> {
     pub fn new(inputs: &'data BitsetStructData) -> Self {
         let index = (0..inputs.chunks).collect::<Vec<usize>>();
 
-        let mut state: Vec<Bitset> = vec![vec![<u64>::MAX]; inputs.chunks];
+        let num_attributes = inputs.inputs.len();
+        let mut state: Vec<Bitset> = vec![Vec::with_capacity(num_attributes); inputs.chunks];
+        for i in 0..inputs.chunks {
+            state[i].push(u64::MAX);
+        }
 
-        if !(inputs.size % 64 == 0) {
+        if inputs.size % 64 != 0 {
             let first_dead_bit = 64 - (inputs.chunks * 64 - inputs.size);
             let first_chunk = &mut state[0];
 
@@ -142,15 +159,18 @@ impl<'data> RSparseBitsetStructure<'data> {
             }
         }
 
+        let mut limit = Vec::with_capacity(num_attributes);
+        limit.push((inputs.chunks - 1) as isize);
+
         let mut structure = RSparseBitsetStructure {
             inputs,
             support: Support::MAX,
             num_labels: inputs.targets.len(),
-            num_attributes: inputs.inputs.len(),
-            position: vec![],
+            num_attributes,
+            position: Vec::with_capacity(num_attributes),
             state,
             index,
-            limit: vec![(inputs.chunks - 1) as isize],
+            limit,
         };
 
         structure.support();

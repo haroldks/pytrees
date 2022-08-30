@@ -34,7 +34,7 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
     }
 
     fn labels_support(&self) -> Vec<Support> {
-        let mut support = vec![];
+        let mut support = Vec::with_capacity(self.num_labels);
         if let Some(state) = self.get_last_state() {
             for label in 0..self.num_labels {
                 support.push(state[label].len());
@@ -71,6 +71,14 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
         self.backtrack();
         support
     }
+
+    fn reset(&mut self) {
+        let mut state = HBSStackState::with_capacity(self.num_attributes);
+        state.push(self.state[0].clone());
+        self.position = Vec::with_capacity(self.num_attributes);
+        self.state = state;
+        self.support();
+    }
 }
 
 impl<'data> HorizontalBinaryStructure<'data> {
@@ -81,7 +89,7 @@ impl<'data> HorizontalBinaryStructure<'data> {
         let data_ref = data.get_train();
         let num_labels = data.num_labels();
         let size = data.train_size();
-        let mut inputs = vec![vec![]; num_labels];
+        let mut inputs = vec![Vec::with_capacity(size); num_labels];
 
         for i in 0..size {
             inputs[data_ref.0[i]].push(data_ref.1[i].clone());
@@ -91,7 +99,7 @@ impl<'data> HorizontalBinaryStructure<'data> {
     }
 
     pub fn new(inputs: &'data HorizontalData) -> Self {
-        let mut state = HBSStackState::new();
+        let mut state = HBSStackState::with_capacity(inputs[0][0].len());
 
         let mut initial_state = HBSState::new();
         for i in 0..inputs.len() {
@@ -104,7 +112,7 @@ impl<'data> HorizontalBinaryStructure<'data> {
             support: Support::MAX,
             num_labels: inputs.len(),
             num_attributes: inputs[0][0].len(),
-            position: vec![],
+            position: Vec::with_capacity(inputs[0][0].len()),
             state,
         };
         structure.support();
@@ -119,7 +127,7 @@ impl<'data> HorizontalBinaryStructure<'data> {
         let mut new_state = HBSState::new();
         if let Some(last) = self.get_last_state() {
             for i in 0..self.num_labels {
-                let mut label_transactions = vec![];
+                let mut label_transactions = Vec::with_capacity(last[i].len());
                 for transaction in &last[i] {
                     let input = &self.input[i][*transaction];
                     if input[item.0] == item.1 {

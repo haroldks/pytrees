@@ -8,3 +8,12 @@ edition = "2021"
 [dependencies]
 rand = "0.8.5"
 itertools = "0.10.3"
+
+
+[[bench]]
+name = "structures_bench"
+harness = false
+
+
+[dev-dependencies]
+bencher = "0.1.5"

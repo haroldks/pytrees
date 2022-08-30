@@ -175,3 +175,6 @@ datasets/*
 !datasets/small_.txt
 !datasets/anneal.txt
 !datasets/rsparse_dataset.txt
+!datasets/ionosphere.txt
+!datasets/splice-1.txt
+!datasets/letter.txt

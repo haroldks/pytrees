@@ -9,11 +9,16 @@ pub struct HorizontalBinaryStructure<'data> {
     input: &'data HorizontalData,
     support: Support,
     num_labels: usize,
+    num_attributes: usize,
     position: Position,
     state: HBSStackState,
 }
 
 impl<'data> Structure for HorizontalBinaryStructure<'data> {
+    fn num_attributes(&self) -> usize {
+        self.num_attributes
+    }
+
     fn num_labels(&self) -> usize {
         self.num_labels
     }
@@ -23,6 +28,16 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
         if label < self.num_labels {
             if let Some(state) = self.get_last_state() {
                 support = state[label].len();
+            }
+        }
+        support
+    }
+
+    fn labels_support(&self) -> Vec<Support> {
+        let mut support = vec![];
+        if let Some(state) = self.get_last_state() {
+            for label in 0..self.num_labels {
+                support.push(state[label].len());
             }
         }
         support
@@ -88,6 +103,7 @@ impl<'data> HorizontalBinaryStructure<'data> {
             input: inputs,
             support: Support::MAX,
             num_labels: inputs.len(),
+            num_attributes: inputs[0][0].len(),
             position: vec![],
             state,
         };

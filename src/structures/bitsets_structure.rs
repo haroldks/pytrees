@@ -8,12 +8,17 @@ use crate::structures::structures_types::{
 pub struct BitsetStructure<'data> {
     inputs: &'data BitsetStructData,
     support: Support,
+    num_attributes: usize,
     num_labels: usize,
     position: Position,
     state: BitsetStackState,
 }
 
 impl<'data> Structure for BitsetStructure<'data> {
+    fn num_attributes(&self) -> usize {
+        self.num_attributes
+    }
+
     fn num_labels(&self) -> usize {
         self.num_labels
     }
@@ -31,6 +36,21 @@ impl<'data> Structure for BitsetStructure<'data> {
             }
         }
         support
+    }
+
+    fn labels_support(&self) -> Vec<Support> {
+        let mut support = vec![];
+        if let Some(state) = self.get_last_state() {
+            for label in 0..self.num_labels {
+                let mut count = 0;
+                let label_bitset = &self.inputs.targets[label];
+                for (i, label_chunk) in label_bitset.iter().enumerate() {
+                    count += (*label_chunk & state[i]).count_ones();
+                }
+                support.push(count as Support);
+            }
+        }
+        return support;
     }
 
     fn support(&mut self) -> Support {
@@ -125,6 +145,7 @@ impl<'data> BitsetStructure<'data> {
         let mut structure = BitsetStructure {
             inputs,
             support: Support::MAX,
+            num_attributes: inputs.inputs.len(),
             num_labels: inputs.targets.len(),
             position: vec![],
             state,

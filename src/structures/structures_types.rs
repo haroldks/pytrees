@@ -1,4 +1,5 @@
 pub type Support = usize;
+pub type Depth = usize;
 pub type Attribute = usize;
 pub type Item = (Attribute, usize);
 pub type Position = Vec<Item>;

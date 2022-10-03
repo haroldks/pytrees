@@ -21,3 +21,6 @@ pub struct BitsetStructData {
 }
 
 pub type BitsetStackState = Vec<Bitset>;
+
+// Tree types
+pub type TreeIndex = usize;

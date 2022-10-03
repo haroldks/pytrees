@@ -232,6 +232,7 @@ mod test_bitsets {
 
         assert_eq!(structure.support, 10);
         assert_eq!(structure.position.is_empty(), true);
+        assert_eq!(structure.num_labels(), 2);
 
         if let Some(state) = structure.get_last_state() {
             let expected_state = [1023u64];
@@ -246,6 +247,9 @@ mod test_bitsets {
         let mut structure = BitsetStructure::new(&bitset_data);
 
         structure.push((3, 1));
+        let s = structure.temp_push((2, 1));
+        assert_eq!(s, 2);
+
         structure.push((0, 0));
         structure.backtrack();
 
@@ -289,6 +293,7 @@ mod test_bitsets {
         assert_eq!(structure.support, 2);
         assert_eq!(structure.label_support(0), 1);
         assert_eq!(structure.label_support(1), 1);
+        assert_eq!(structure.labels_support().iter().eq([1, 1].iter()), true);
     }
 
     #[test]

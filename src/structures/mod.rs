@@ -1,3 +1,4 @@
+pub mod binary_tree;
 pub mod bitsets_structure;
 pub mod horizontal_binary_structure;
 pub mod reversible_sparse_bitsets_structure;

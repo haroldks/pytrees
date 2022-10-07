@@ -233,6 +233,7 @@ mod test_bitsets {
         assert_eq!(structure.support, 10);
         assert_eq!(structure.position.is_empty(), true);
         assert_eq!(structure.num_labels(), 2);
+        assert_eq!(structure.num_attributes(), 4);
 
         if let Some(state) = structure.get_last_state() {
             let expected_state = [1023u64];
@@ -1665,5 +1666,24 @@ mod test_bitsets {
         assert_eq!(bitset_data.chunks, expected_chunks);
         assert_eq!(bitset_data.inputs.iter().eq(expected_inputs.iter()), true);
         assert_eq!(bitset_data.targets.iter().eq(expected_targets.iter()), true);
+    }
+
+    #[test]
+    fn check_reset() {
+        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let bitset_data = BitsetStructure::format_input_data(&dataset);
+        let mut structure = BitsetStructure::new(&bitset_data);
+
+        for i in 0..structure.num_attributes() / 4 {
+            &mut structure.push((i, 0));
+        }
+
+        structure.reset();
+
+        assert_eq!(structure.support(), 812);
+        assert_eq!(
+            structure.labels_support().iter().eq([187, 625].iter()),
+            true
+        );
     }
 }

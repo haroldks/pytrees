@@ -131,6 +131,9 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
         self.state = state;
         self.support();
     }
+    fn get_position(&self) -> &Position {
+        &self.position
+    }
 }
 
 impl<'data> RSparseBitsetStructure<'data> {

@@ -1,7 +1,7 @@
 use crate::dataset::data_trait::Dataset;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{
-    Bitset, BitsetStackState, BitsetStructData, Item, Position, Support,
+    Attribute, Bitset, BitsetStackState, BitsetStructData, Item, Position, Support,
 };
 
 #[derive(Clone)]
@@ -91,6 +91,9 @@ impl<'data> Structure for BitsetStructure<'data> {
         state.push(self.state[0].clone());
         self.state = state;
         self.support();
+    }
+    fn get_position(&self) -> &Position {
+        &self.position
     }
 }
 

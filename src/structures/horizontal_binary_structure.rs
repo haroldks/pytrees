@@ -79,6 +79,9 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
         self.state = state;
         self.support();
     }
+    fn get_position(&self) -> &Position {
+        &self.position
+    }
 }
 
 impl<'data> HorizontalBinaryStructure<'data> {

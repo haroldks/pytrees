@@ -1,4 +1,4 @@
-use crate::structures::structures_types::{Item, Support};
+use crate::structures::structures_types::{Attribute, Item, Position, Support};
 
 pub trait Structure {
     // TODO: Add capacity control on the structures to avoid memory relocation
@@ -11,6 +11,7 @@ pub trait Structure {
     fn backtrack(&mut self);
     fn temp_push(&mut self, item: Item) -> Support;
     fn reset(&mut self);
+    fn get_position(&self) -> &Position;
     fn change_position(&mut self, itemset: &Vec<Item>) -> Support {
         self.reset();
         for item in itemset {

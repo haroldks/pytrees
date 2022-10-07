@@ -91,6 +91,7 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     fn push(&mut self, item: Item) -> Support {
         self.position.push(item);
         self.pushing(item);
+
         self.support()
     }
 
@@ -100,11 +101,11 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
             if self.is_empty() {
                 self.limit.pop();
             } else {
-                self.limit.pop();
                 if let Some(limit) = self.limit.last() {
                     for i in 0..(*limit + 1) as usize {
                         self.state[self.index[i]].pop();
                     }
+                    self.limit.pop();
                 }
             }
 
@@ -202,7 +203,7 @@ impl<'data> RSparseBitsetStructure<'data> {
                             _ => val & feature_vec[cursor],
                         };
                         if word == 0 {
-                            self.index[i] = lim;
+                            self.index[i] = self.index[lim];
                             self.index[lim] = cursor;
                             limit -= 1;
                             lim = lim.saturating_sub(1);
@@ -226,6 +227,7 @@ impl<'data> RSparseBitsetStructure<'data> {
 mod test_rsparse_bitset {
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
+    use crate::structures::bitsets_structure::BitsetStructure;
     use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
     use crate::structures::structure_trait::Structure;
 
@@ -332,5 +334,47 @@ mod test_rsparse_bitset {
         assert_eq!(structure.label_support(0), 1);
         assert_eq!(structure.label_support(1), 0);
         assert_eq!(structure.labels_support().iter().eq([1, 0].iter()), true);
+    }
+
+    #[test]
+    fn check_reset() {
+        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
+        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+
+        for i in 0..structure.num_attributes() / 4 {
+            &mut structure.push((i, 0));
+        }
+
+        structure.reset();
+
+        assert_eq!(structure.support(), 812);
+        assert_eq!(
+            structure.labels_support().iter().eq([187, 625].iter()),
+            true
+        );
+    }
+
+    #[test]
+    fn test_temp_push() {
+        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
+        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        let num_attributes = structure.num_attributes();
+
+        assert_eq!(
+            structure.labels_support().iter().eq([187, 625].iter()),
+            true
+        );
+        assert_eq!(structure.temp_push((43, 1)), 26);
+        assert_eq!(
+            structure.labels_support().iter().eq([187, 625].iter()),
+            true
+        );
+        assert_eq!(structure.temp_push((43, 0)), 786);
+        assert_eq!(
+            structure.labels_support().iter().eq([187, 625].iter()),
+            true
+        );
     }
 }

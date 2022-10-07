@@ -65,7 +65,7 @@ impl MurTree {
             if error < past_error {
                 if let Some(root) = tree.get_node_mut(tree.get_root_index()) {
                     root.value.metric = error;
-                    root.value.test = candidates[i];
+                    root.value.test = Some(candidates[i]);
                 }
                 if let Some(left) = tree.get_node_mut(left_index) {
                     left.value.metric = left_error;
@@ -125,7 +125,7 @@ impl MurTree {
             let mut right_index = 0;
 
             if let Some(root_node) = root_tree.get_node_mut(root_tree.get_root_index()) {
-                root_node.value.test = candidates[i];
+                root_node.value.test = Some(candidates[i]);
                 left_index = root_node.left;
                 right_index = root_node.right;
             }
@@ -164,7 +164,7 @@ impl MurTree {
 
                 if root_left_error < past_error {
                     if let Some(left_node) = root_tree.get_node_mut(left_index) {
-                        left_node.value.test = candidates[j];
+                        left_node.value.test = Some(candidates[j]);
                         left_node.value.metric = root_left_error;
                         left_leaf_index = left_node.left;
                         right_leaf_index = left_node.right;
@@ -200,7 +200,7 @@ impl MurTree {
 
                 if root_right_error < past_error {
                     if let Some(right_node) = root_tree.get_node_mut(right_index) {
-                        right_node.value.test = candidates[j];
+                        right_node.value.test = Some(candidates[j]);
                         right_node.value.metric = root_right_error;
                         left_leaf_index = right_node.left;
                         right_leaf_index = right_node.right;
@@ -243,22 +243,6 @@ impl MurTree {
             false => Some(0),
         };
     }
-
-    fn empty_tree(depth: Depth) -> Tree<NodeData<usize>> {
-        let mut tree = Tree::new();
-        let root = tree.add_root(TreeNode {
-            value: NodeData {
-                test: 0,
-                metric: <usize>::MAX,
-                out: None,
-            },
-            index: 0,
-            left: 0,
-            right: 0,
-        });
-        MurTree::build_tree_recurse(&mut tree, root, depth);
-        tree
-    }
 }
 
 #[cfg(test)]
@@ -271,16 +255,19 @@ mod murtree_test {
     use crate::structures::horizontal_binary_structure::HorizontalBinaryStructure;
     use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
     use crate::structures::structure_trait::Structure;
-    use crate::structures::structures_types::BitsetStructData;
+    use crate::structures::structures_types::{BitsetStructData, HorizontalData};
 
     #[test]
     fn test_full_data_matrix_building() {
         // TODO: fix when there is only one chunk issue
 
         let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
-        let bitset_data = HorizontalBinaryStructure::format_input_data(&dataset);
-        let mut structure = HorizontalBinaryStructure::new(&bitset_data);
+        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
+        let mut structure = RSparseBitsetStructure::new(&bitset_data);
         let candidates = MurTree::first_candidates(&mut structure, 1);
+
+        let num_attributes = structure.num_attributes();
+
         let expected_matrix = [
             [
                 (72usize, 184usize),
@@ -8205,9 +8192,14 @@ mod murtree_test {
         ];
         let matrix = MurTree::build_depth_two_matrix(&mut structure, &candidates);
         assert_eq!(matrix.iter().eq(expected_matrix.iter()), true);
-        let a = MurTree::fit(&mut structure, 300, 1);
-        let error = MurTree::get_tree_error(&a);
-        println!("Error : {}", error);
-        a.print();
+
+        let mut structure = BitsetStructure::new(&bitset_data);
+        let matrix = MurTree::build_depth_two_matrix(&mut structure, &candidates);
+        assert_eq!(matrix.iter().eq(expected_matrix.iter()), true);
+
+        let data = HorizontalBinaryStructure::format_input_data(&dataset);
+        let mut structure = HorizontalBinaryStructure::new(&data);
+        let matrix = MurTree::build_depth_two_matrix(&mut structure, &candidates);
+        assert_eq!(matrix.iter().eq(expected_matrix.iter()), true);
     }
 }

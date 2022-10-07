@@ -151,7 +151,7 @@ mod test_binary_dataset {
         assert_eq!(dataset.test.is_some(), true);
         let data = dataset.test.take().unwrap();
         let rows = data.1;
-        assert_eq!(data.0.len(), dataset.size / 2);
+        assert_eq!(data.0.len(), dataset.size() / 2);
         let content = vec![vec![1, 0, 1], vec![0, 1, 1]];
         println!("{:?}", rows);
         assert_eq!(rows.iter().eq(content.iter()), true);
@@ -168,7 +168,7 @@ mod test_binary_dataset {
     #[test]
     fn binary_dataset_size_and_label() {
         let dataset = BinaryDataset::load("datasets/small.txt", true, 0.0);
-        assert_eq!(dataset.size, 4);
-        assert_eq!(dataset.num_labels, 2);
+        assert_eq!(dataset.size(), 4);
+        assert_eq!(dataset.num_labels(), 2);
     }
 }

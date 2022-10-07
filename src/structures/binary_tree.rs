@@ -1,11 +1,24 @@
 use crate::structures::structures_types::{Attribute, Depth, TreeIndex};
-use rand::distributions::Slice;
+use num_traits::Bounded;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct NodeData<V> {
-    pub(crate) test: Attribute,
+    pub(crate) test: Option<Attribute>,
     pub(crate) metric: V,
     pub(crate) out: Option<usize>,
+}
+
+impl<V> NodeData<V> {
+    pub fn new() -> NodeData<V>
+    where
+        V: Bounded,
+    {
+        NodeData {
+            test: None,
+            metric: V::max_value(),
+            out: None,
+        }
+    }
 }
 
 pub struct TreeNode<T> {
@@ -13,6 +26,17 @@ pub struct TreeNode<T> {
     pub(crate) index: TreeIndex,
     pub(crate) left: usize,
     pub(crate) right: usize,
+}
+
+impl<T> TreeNode<T> {
+    pub fn new(value: T) -> TreeNode<T> {
+        TreeNode {
+            value,
+            index: 0,
+            left: 0,
+            right: 0,
+        }
+    }
 }
 
 pub struct Tree<T> {
@@ -26,8 +50,6 @@ impl<T> Default for Tree<T> {
 }
 
 impl<T> Tree<T> {
-    // TODO: functions for fixed size tree
-
     pub fn new() -> Self {
         Tree { tree: Vec::new() }
     }
@@ -116,6 +138,7 @@ impl<T> Tree<T> {
             self.tree.get_mut(node.right)
         }
     }
+
     pub fn print(&self)
     where
         T: std::fmt::Debug,
@@ -137,5 +160,135 @@ impl<T> Tree<T> {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod binary_tree_test {
+    use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
+
+    #[test]
+    fn create_node_data() {
+        let data: NodeData<usize> = NodeData::new();
+        assert_eq!(data.metric, <usize>::MAX);
+        assert_eq!(data.test.is_none(), true);
+        assert_eq!(data.out, None);
+    }
+
+    #[test]
+    fn create_tree_node() {
+        let data: NodeData<usize> = NodeData::new();
+        let node = TreeNode::new(data);
+        assert_eq!(node.right, 0);
+        assert_eq!(node.left, 0);
+        assert_eq!(node.index, 0);
+    }
+
+    #[test]
+    fn tree_default() {
+        let tree: Tree<i32> = Tree::default();
+        assert_eq!(tree.len(), 0);
+    }
+
+    #[test]
+    fn tree_new() {
+        let tree: Tree<i32> = Tree::default();
+        assert_eq!(tree.len(), 0);
+    }
+
+    #[test]
+    fn tree_is_empty() {
+        let mut tree: Tree<i32> = Tree::new();
+        assert_eq!(tree.is_empty(), true);
+
+        let root = TreeNode::new(5);
+        tree.add_root(root);
+        assert_eq!(tree.is_empty(), false);
+    }
+
+    #[test]
+    fn binarytree_add_root() {
+        let mut tree: Tree<f32> = Tree::new();
+        let root = TreeNode::new(10.0);
+        let root_index = tree.add_root(root);
+        assert_eq!(0, root_index);
+    }
+
+    #[test]
+    fn binarytree_get_root_index() {
+        let mut tree: Tree<f32> = Tree::new();
+        let root = TreeNode::new(10.0);
+        let _ = tree.add_root(root);
+        let root_index = tree.get_root_index();
+        assert_eq!(0, root_index);
+    }
+
+    #[test]
+    fn binarytree_get_left_child() {
+        let mut tree: Tree<f32> = Tree::new();
+        let root = TreeNode::new(10.0);
+        let root_index = tree.add_root(root);
+        let left_node = TreeNode::new(5.0);
+        let _ = tree.add_left_node(root_index, left_node);
+        let root = tree.get_node(root_index).unwrap();
+        let left_node = tree.get_left_child(root).unwrap();
+        assert_eq!(left_node.value, 5.0);
+    }
+
+    #[test]
+    fn binarytree_get_right_child() {
+        let mut tree: Tree<f32> = Tree::new();
+        let root = TreeNode::new(10.0);
+        let root_index = tree.add_root(root);
+        let right_node = TreeNode::new(5.0);
+        let _ = tree.add_right_node(root_index, right_node);
+        let root = tree.get_node(root_index).unwrap();
+        let right_node = tree.get_right_child(root).unwrap();
+        assert_eq!(right_node.value, 5.0);
+    }
+
+    #[test]
+    fn test_get_node() {
+        let mut tree: Tree<i32> = Tree::new();
+        let root = TreeNode::new(10);
+        let _ = tree.add_root(root);
+        let root_index = tree.get_root_index();
+        let root = tree.get_node(root_index).unwrap();
+        assert_eq!(10, root.value)
+    }
+
+    #[test]
+    fn test_get_node_mut() {
+        let mut tree: Tree<i32> = Tree::new();
+        let root = TreeNode::new(10);
+        let _ = tree.add_root(root);
+        let root_index = tree.get_root_index();
+        let root = tree.get_node_mut(root_index).unwrap();
+        root.value = 11;
+        assert_eq!(11, root.value);
+    }
+
+    #[test]
+    fn test_add_left_node() {
+        let mut tree: Tree<f32> = Tree::new();
+        let root = TreeNode::new(10.0);
+        let root_index = tree.add_root(root);
+        let left_node = TreeNode::new(5.0);
+        let _ = tree.add_left_node(root_index, left_node);
+        let root = tree.get_node(root_index).unwrap();
+        let left_node = tree.get_left_child(root).unwrap();
+        assert_eq!(left_node.value, 5.0);
+    }
+
+    #[test]
+    fn test_add_right_node() {
+        let mut tree: Tree<f32> = Tree::new();
+        let root = TreeNode::new(10.0);
+        let root_index = tree.add_root(root);
+        let right_node = TreeNode::new(5.0);
+        let _ = tree.add_right_node(root_index, right_node);
+        let root = tree.get_node(root_index).unwrap();
+        let right_node = tree.get_right_child(root).unwrap();
+        assert_eq!(right_node.value, 5.0);
     }
 }

@@ -11,10 +11,10 @@ pub trait Structure {
     fn backtrack(&mut self);
     fn temp_push(&mut self, item: Item) -> Support;
     fn reset(&mut self);
-    fn change_position(&mut self, itemset: Vec<Item>) -> Support {
+    fn change_position(&mut self, itemset: &Vec<Item>) -> Support {
         self.reset();
         for item in itemset {
-            self.push(item);
+            self.push(*item);
         }
         self.support()
     }

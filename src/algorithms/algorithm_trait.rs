@@ -59,6 +59,22 @@ pub(crate) trait Algorithm {
             .0
     }
 
+    fn empty_tree(depth: Depth) -> Tree<NodeData<usize>> {
+        let mut tree = Tree::new();
+        let root = tree.add_root(TreeNode {
+            value: NodeData {
+                test: None,
+                metric: <usize>::MAX,
+                out: None,
+            },
+            index: 0,
+            left: 0,
+            right: 0,
+        });
+        Self::build_tree_recurse(&mut tree, root, depth);
+        tree
+    }
+
     fn build_tree_recurse(tree: &mut Tree<NodeData<usize>>, parent: TreeIndex, depth: Depth) {
         if depth == 0 {
             if let Some(parent_node) = tree.get_node_mut(parent) {
@@ -71,7 +87,7 @@ pub(crate) trait Algorithm {
                 true,
                 TreeNode {
                     value: NodeData {
-                        test: 0,
+                        test: None,
                         metric: <usize>::MAX,
                         out: None,
                     },
@@ -87,7 +103,7 @@ pub(crate) trait Algorithm {
                 false,
                 TreeNode {
                     value: NodeData {
-                        test: 0,
+                        test: None,
                         metric: <usize>::MAX,
                         out: None,
                     },

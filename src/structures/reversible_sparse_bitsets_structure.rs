@@ -45,7 +45,7 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
                 return count as Support;
             }
         }
-        return support;
+        support
     }
 
     fn labels_support(&self) -> Vec<Support> {
@@ -100,13 +100,11 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
             self.position.pop();
             if self.is_empty() {
                 self.limit.pop();
-            } else {
-                if let Some(limit) = self.limit.last() {
-                    for i in 0..(*limit + 1) as usize {
-                        self.state[self.index[i]].pop();
-                    }
-                    self.limit.pop();
+            } else if let Some(limit) = self.limit.last() {
+                for i in 0..(*limit + 1) as usize {
+                    self.state[self.index[i]].pop();
                 }
+                self.limit.pop();
             }
 
             self.support();
@@ -149,8 +147,8 @@ impl<'data> RSparseBitsetStructure<'data> {
 
         let num_attributes = inputs.inputs.len();
         let mut state: Vec<Bitset> = vec![Vec::with_capacity(num_attributes); inputs.chunks];
-        for i in 0..inputs.chunks {
-            state[i].push(u64::MAX);
+        for s in state.iter_mut().take(inputs.chunks) {
+            s.push(u64::MAX);
         }
 
         if inputs.size % 64 != 0 {
@@ -179,10 +177,6 @@ impl<'data> RSparseBitsetStructure<'data> {
 
         structure.support();
         structure
-    }
-
-    fn get_state(&self) -> &BitsetStackState {
-        &self.state
     }
 
     fn is_empty(&self) -> bool {

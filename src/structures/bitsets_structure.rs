@@ -1,7 +1,7 @@
 use crate::dataset::data_trait::Dataset;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{
-    Attribute, Bitset, BitsetStackState, BitsetStructData, Item, Position, Support,
+    Bitset, BitsetStackState, BitsetStructData, Item, Position, Support,
 };
 
 #[derive(Clone)]
@@ -50,7 +50,7 @@ impl<'data> Structure for BitsetStructure<'data> {
                 support.push(count as Support);
             }
         }
-        return support;
+        support
     }
 
     fn support(&mut self) -> Support {
@@ -142,7 +142,7 @@ impl<'data> BitsetStructure<'data> {
         let mut state = BitsetStackState::with_capacity(num_attributes);
         let mut inital_state: Bitset = vec![<u64>::MAX; inputs.chunks];
 
-        if !(inputs.size % 64 == 0) {
+        if inputs.size % 64 != 0 {
             let first_dead_bit = 64 - (inputs.chunks * 64 - inputs.size);
             let first_chunk = &mut inital_state[0];
 

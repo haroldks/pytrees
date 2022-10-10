@@ -1,4 +1,4 @@
-use crate::structures::structures_types::{Attribute, Depth, TreeIndex};
+use crate::structures::structures_types::{Attribute, TreeIndex};
 use num_traits::Bounded;
 
 #[derive(Clone, Copy, Debug)]
@@ -115,7 +115,6 @@ impl<T> Tree<T> {
         }
     }
     pub fn get_left_child_mut(&mut self, node: &TreeNode<T>) -> Option<&mut TreeNode<T>> {
-        // FIXME: Might cause issues later
         if node.left == 0 {
             None
         } else {
@@ -131,7 +130,6 @@ impl<T> Tree<T> {
         }
     }
     pub fn get_right_child_mut(&mut self, node: &TreeNode<T>) -> Option<&mut TreeNode<T>> {
-        // FIXME: Might cause issues later
         if node.right == 0 {
             None
         } else {

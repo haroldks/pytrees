@@ -1,13 +1,14 @@
 use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Depth, Support, TreeIndex};
+use num_traits::Bounded;
 
 pub(crate) trait Algorithm {
     fn fit<S>(structure: &mut S, min_sup: Support, max_depth: Depth) -> Tree<NodeData<usize>>
     where
         S: Structure;
 
-    fn first_candidates<S>(structure: &mut S, min_sup: Support) -> Vec<Attribute>
+    fn generate_candidates_list<S>(structure: &mut S, min_sup: Support) -> Vec<Attribute>
     where
         S: Structure,
     {
@@ -19,6 +20,32 @@ pub(crate) trait Algorithm {
             }
         }
         candidates
+    }
+
+    fn build_depth_two_matrix<S>(
+        structure: &mut S,
+        candidates: &Vec<Attribute>,
+    ) -> Vec<Vec<(usize, usize)>>
+    where
+        S: Structure,
+    {
+        let size = candidates.len();
+        let mut matrix = vec![vec![(0usize, 0usize); size]; size];
+        for i in 0..size {
+            structure.push((candidates[i], 1));
+            let val = structure.labels_support();
+            matrix[i][i] = (val[0], val[1]);
+
+            for j in i + 1..size {
+                structure.push((candidates[j], 1));
+                let val = structure.labels_support();
+                structure.backtrack();
+                matrix[i][j] = (val[0], val[1]);
+                matrix[j][i] = (val[0], val[1]);
+            }
+            structure.backtrack();
+        }
+        matrix
     }
 
     fn sort_candidates<S, F>(
@@ -34,18 +61,11 @@ pub(crate) trait Algorithm {
         func(structure, candidates, increasing)
     }
 
-    fn get_tree_error(tree: &Tree<NodeData<usize>>) -> usize {
-        if let Some(root) = tree.get_node(tree.get_root_index()) {
-            return root.value.metric;
-        }
-        <usize>::MAX
-    }
-
-    fn get_misclassification_error(classes_support: &Vec<usize>) -> usize {
+    fn get_misclassification_error(classes_support: &[usize]) -> usize {
         classes_support.iter().sum::<usize>() - classes_support.iter().max().unwrap()
     }
 
-    fn get_top_class(classes_support: &Vec<usize>) -> usize {
+    fn get_top_class(classes_support: &[usize]) -> usize {
         classes_support
             .iter()
             .enumerate()
@@ -59,60 +79,56 @@ pub(crate) trait Algorithm {
             .0
     }
 
-    fn empty_tree(depth: Depth) -> Tree<NodeData<usize>> {
+    fn empty_tree<V>(depth: Depth) -> Tree<NodeData<V>>
+    where
+        V: Bounded + Copy,
+    {
         let mut tree = Tree::new();
-        let root = tree.add_root(TreeNode {
-            value: NodeData {
-                test: None,
-                metric: <usize>::MAX,
-                out: None,
-            },
-            index: 0,
-            left: 0,
-            right: 0,
-        });
+        let value: NodeData<V> = NodeData::new();
+        let node = TreeNode::new(value);
+        let root = tree.add_root(node);
         Self::build_tree_recurse(&mut tree, root, depth);
         tree
     }
 
-    fn build_tree_recurse(tree: &mut Tree<NodeData<usize>>, parent: TreeIndex, depth: Depth) {
+    fn build_tree_recurse<V>(tree: &mut Tree<NodeData<V>>, parent: TreeIndex, depth: Depth)
+    where
+        V: Bounded + Copy,
+    {
         if depth == 0 {
             if let Some(parent_node) = tree.get_node_mut(parent) {
                 parent_node.left = 0;
                 parent_node.right = 0;
             }
         } else {
-            let left = tree.add_node(
-                parent,
-                true,
-                TreeNode {
-                    value: NodeData {
-                        test: None,
-                        metric: <usize>::MAX,
-                        out: None,
-                    },
-                    index: 0,
-                    left: 0,
-                    right: 0,
-                },
-            );
+            let value: NodeData<V> = NodeData::new();
+            let node = TreeNode::new(value);
+            let left = tree.add_node(parent, true, node);
             Self::build_tree_recurse(tree, left, depth - 1);
-
-            let right = tree.add_node(
-                parent,
-                false,
-                TreeNode {
-                    value: NodeData {
-                        test: None,
-                        metric: <usize>::MAX,
-                        out: None,
-                    },
-                    index: 0,
-                    left: 0,
-                    right: 0,
-                },
-            );
+            let node = TreeNode::new(value);
+            let right = tree.add_node(parent, false, node);
             Self::build_tree_recurse(tree, right, depth - 1);
         }
+    }
+
+    fn create_leaves<V>(leaf_ref: &mut TreeNode<NodeData<V>>, data: &[V], error: V)
+    where
+        V: Bounded + Copy + PartialOrd,
+    {
+        leaf_ref.value.metric = error;
+        leaf_ref.value.out = match data[1] > data[0] {
+            true => Some(1),
+            false => Some(0),
+        };
+    }
+
+    fn get_tree_metric<V>(tree: &Tree<NodeData<V>>) -> V
+    where
+        V: Bounded + Copy,
+    {
+        if let Some(root) = tree.get_node(tree.get_root_index()) {
+            return root.value.metric;
+        }
+        V::max_value()
     }
 }

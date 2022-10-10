@@ -1,4 +1,4 @@
-use crate::structures::structures_types::{Attribute, Item, Position, Support};
+use crate::structures::structures_types::{Item, Position, Support};
 
 pub trait Structure {
     // TODO: Add capacity control on the structures to avoid memory relocation

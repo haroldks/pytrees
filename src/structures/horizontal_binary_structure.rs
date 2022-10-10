@@ -36,8 +36,8 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
     fn labels_support(&self) -> Vec<Support> {
         let mut support = Vec::with_capacity(self.num_labels);
         if let Some(state) = self.get_last_state() {
-            for label in 0..self.num_labels {
-                support.push(state[label].len());
+            for label_state in state.iter().take(self.num_labels) {
+                support.push(label_state.len());
             }
         }
         support
@@ -105,8 +105,8 @@ impl<'data> HorizontalBinaryStructure<'data> {
         let mut state = HBSStackState::with_capacity(inputs[0][0].len());
 
         let mut initial_state = HBSState::new();
-        for i in 0..inputs.len() {
-            initial_state.push((0..inputs[i].len()).collect::<Vec<usize>>())
+        for input in inputs {
+            initial_state.push((0..input.len()).collect::<Vec<usize>>())
         }
         state.push(initial_state);
 
@@ -129,9 +129,9 @@ impl<'data> HorizontalBinaryStructure<'data> {
     fn pushing(&mut self, item: Item) {
         let mut new_state = HBSState::new();
         if let Some(last) = self.get_last_state() {
-            for i in 0..self.num_labels {
-                let mut label_transactions = Vec::with_capacity(last[i].len());
-                for transaction in &last[i] {
+            for (i, label_state) in last.iter().enumerate().take(self.num_labels) {
+                let mut label_transactions = Vec::with_capacity(label_state.len());
+                for transaction in label_state {
                     let input = &self.input[i][*transaction];
                     if input[item.0] == item.1 {
                         label_transactions.push(*transaction);

@@ -1,135 +1,45 @@
 use crate::algorithms::algorithm_trait::Algorithm;
-use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
+use crate::structures::binary_tree::{NodeData, Tree};
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{Attribute, Depth, Support, TreeIndex};
+use crate::structures::structures_types::{Depth, Support};
 
-pub struct MurTree {
-    tree: Option<Tree<NodeData<usize>>>,
-    error: Option<usize>,
-}
+pub struct MurTree {}
 
 impl Algorithm for MurTree {
     fn fit<S>(structure: &mut S, min_sup: Support, max_depth: Depth) -> Tree<NodeData<usize>>
     where
         S: Structure,
     {
-        let tree = match max_depth < 2 {
+        match max_depth < 2 {
             true => MurTree::build_depth_one_tree(structure, min_sup),
-            false => MurTree::sliding_window(structure, min_sup),
-        };
-        tree
+            false => MurTree::build_depth_two_tree(structure, min_sup),
+        }
     }
 }
 
 impl MurTree {
-    pub fn new() -> Self {
-        MurTree {
-            tree: None,
-            error: None,
-        }
-    }
-
-    fn build_depth_one_tree<S>(structure: &mut S, minsup: Support) -> Tree<NodeData<usize>>
-    where
-        S: Structure,
-    {
-        let candidates = MurTree::first_candidates(structure, minsup);
-        let size = candidates.len();
-        let mut tree = MurTree::empty_tree(1);
-        let mut left_index = 0;
-        let mut right_index = 0;
-        if let Some(root) = tree.get_node_mut(tree.get_root_index()) {
-            left_index = root.left;
-            right_index = root.right
-        }
-        for i in 0..size {
-            structure.push((candidates[i], 0));
-
-            let classes_support = structure.labels_support();
-            let left_class = MurTree::get_top_class(&classes_support);
-            let left_error = MurTree::get_misclassification_error(&classes_support);
-            structure.backtrack();
-
-            structure.push((candidates[i], 1));
-            let classes_support = structure.labels_support();
-            let right_class = MurTree::get_top_class(&classes_support);
-            let right_error = MurTree::get_misclassification_error(&classes_support);
-            structure.backtrack();
-
-            let error = left_error + right_error;
-            let mut past_error = <usize>::MAX;
-
-            if let Some(root) = tree.get_node_mut(tree.get_root_index()) {
-                past_error = root.value.metric;
-            }
-            if error < past_error {
-                if let Some(root) = tree.get_node_mut(tree.get_root_index()) {
-                    root.value.metric = error;
-                    root.value.test = Some(candidates[i]);
-                }
-                if let Some(left) = tree.get_node_mut(left_index) {
-                    left.value.metric = left_error;
-                    left.value.out = Some(left_class);
-                }
-                if let Some(right) = tree.get_node_mut(right_index) {
-                    right.value.metric = right_error;
-                    right.value.out = Some(right_class);
-                }
-            }
-        }
-        tree
-    }
-
-    fn build_depth_two_matrix<S>(
-        structure: &mut S,
-        candidates: &Vec<Attribute>,
-    ) -> Vec<Vec<(usize, usize)>>
-    where
-        S: Structure,
-    {
-        let size = candidates.len();
-        let mut matrix = vec![vec![(0usize, 0usize); size]; size];
-        for i in 0..size {
-            structure.push((candidates[i], 1));
-            let val = structure.labels_support();
-            matrix[i][i] = (val[0], val[1]);
-
-            for j in i + 1..size {
-                structure.push((candidates[j], 1));
-                let val = structure.labels_support();
-                structure.backtrack();
-                matrix[i][j] = (val[0], val[1]);
-                matrix[j][i] = (val[0], val[1]);
-            }
-            structure.backtrack();
-        }
-        matrix
-    }
-
-    fn sliding_window<S>(structure: &mut S, minsup: Support) -> Tree<NodeData<usize>>
+    fn build_depth_two_tree<S>(structure: &mut S, minsup: Support) -> Tree<NodeData<usize>>
     where
         S: Structure,
     {
         // TODO : depth attribute
-        let candidates = MurTree::first_candidates(structure, minsup);
+        let candidates = MurTree::generate_candidates_list(structure, minsup);
         let matrix = MurTree::build_depth_two_matrix(structure, &candidates);
 
         let mut tree = MurTree::empty_tree(2);
-
-        let size = candidates.len();
         let classes_support = structure.labels_support();
 
-        for i in 0..size {
+        for (i, first) in candidates.iter().enumerate().take(candidates.len()) {
             let mut root_tree = MurTree::empty_tree(2);
             let mut left_index = 0;
             let mut right_index = 0;
 
             if let Some(root_node) = root_tree.get_node_mut(root_tree.get_root_index()) {
-                root_node.value.test = Some(candidates[i]);
+                root_node.value.test = Some(*first);
                 left_index = root_node.left;
                 right_index = root_node.right;
             }
-            for j in 0..size {
+            for (j, second) in candidates.iter().enumerate().take(candidates.len()) {
                 if i == j {
                     continue;
                 }
@@ -164,7 +74,7 @@ impl MurTree {
 
                 if root_left_error < past_error {
                     if let Some(left_node) = root_tree.get_node_mut(left_index) {
-                        left_node.value.test = Some(candidates[j]);
+                        left_node.value.test = Some(*second);
                         left_node.value.metric = root_left_error;
                         left_leaf_index = left_node.left;
                         right_leaf_index = left_node.right;
@@ -226,22 +136,64 @@ impl MurTree {
                 }
             }
 
-            if MurTree::get_tree_error(&root_tree) < MurTree::get_tree_error(&tree) {
+            if MurTree::get_tree_metric(&root_tree) < MurTree::get_tree_metric(&tree) {
                 tree = root_tree;
             }
-            if MurTree::get_tree_error(&tree) == 0 {
+            if MurTree::get_tree_metric(&tree) == 0 {
                 break;
             }
         }
         tree
     }
 
-    fn create_leaves(leaf_ref: &mut TreeNode<NodeData<usize>>, data: &Vec<usize>, error: usize) {
-        leaf_ref.value.metric = error;
-        leaf_ref.value.out = match data[1] > data[0] {
-            true => Some(1),
-            false => Some(0),
-        };
+    fn build_depth_one_tree<S>(structure: &mut S, minsup: Support) -> Tree<NodeData<usize>>
+    where
+        S: Structure,
+    {
+        let candidates = MurTree::generate_candidates_list(structure, minsup);
+        let mut tree = MurTree::empty_tree(1);
+        let mut left_index = 0;
+        let mut right_index = 0;
+        if let Some(root) = tree.get_node_mut(tree.get_root_index()) {
+            left_index = root.left;
+            right_index = root.right
+        }
+        for candidate in candidates.iter().take(candidates.len()) {
+            structure.push((*candidate, 0));
+
+            let classes_support = structure.labels_support();
+            let left_class = MurTree::get_top_class(&classes_support);
+            let left_error = MurTree::get_misclassification_error(&classes_support);
+            structure.backtrack();
+
+            structure.push((*candidate, 1));
+            let classes_support = structure.labels_support();
+            let right_class = MurTree::get_top_class(&classes_support);
+            let right_error = MurTree::get_misclassification_error(&classes_support);
+            structure.backtrack();
+
+            let error = left_error + right_error;
+            let mut past_error = <usize>::MAX;
+
+            if let Some(root) = tree.get_node_mut(tree.get_root_index()) {
+                past_error = root.value.metric;
+            }
+            if error < past_error {
+                if let Some(root) = tree.get_node_mut(tree.get_root_index()) {
+                    root.value.metric = error;
+                    root.value.test = Some(*candidate);
+                }
+                if let Some(left) = tree.get_node_mut(left_index) {
+                    left.value.metric = left_error;
+                    left.value.out = Some(left_class);
+                }
+                if let Some(right) = tree.get_node_mut(right_index) {
+                    right.value.metric = right_error;
+                    right.value.out = Some(right_class);
+                }
+            }
+        }
+        tree
     }
 }
 
@@ -264,7 +216,7 @@ mod murtree_test {
         let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
-        let candidates = MurTree::first_candidates(&mut structure, 1);
+        let candidates = MurTree::generate_candidates_list(&mut structure, 1);
 
         let num_attributes = structure.num_attributes();
 

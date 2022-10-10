@@ -3,6 +3,7 @@ use crate::algorithms::murtree::MurTree;
 use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Depth, Support, TreeIndex};
+use num_traits::Bounded;
 
 struct LGDT {
     tree: Option<Tree<NodeData<usize>>>,
@@ -60,34 +61,23 @@ impl LGDT {
         }
     }
 
-    fn create_child(
-        // TODO use new methods
-        tree: &mut Tree<NodeData<usize>>,
-        parent: TreeIndex,
-        is_left: bool,
-    ) -> TreeIndex {
-        tree.add_node(
-            parent,
-            is_left,
-            TreeNode {
-                value: NodeData {
-                    test: None,
-                    metric: <usize>::MAX,
-                    out: None,
-                },
-                index: 0,
-                left: 0,
-                right: 0,
-            },
-        )
+    fn create_child<V>(tree: &mut Tree<NodeData<V>>, parent: TreeIndex, is_left: bool) -> TreeIndex
+    where
+        V: Bounded + Copy,
+    {
+        let value: NodeData<V> = NodeData::new();
+        let node = TreeNode::new(value);
+        tree.add_node(parent, is_left, node)
     }
 
-    fn move_tree(
-        dest_tree: &mut Tree<NodeData<usize>>,
+    fn move_tree<V>(
+        dest_tree: &mut Tree<NodeData<V>>,
         dest_index: TreeIndex,
-        source_tree: &Tree<NodeData<usize>>,
+        source_tree: &Tree<NodeData<V>>,
         source_index: TreeIndex,
-    ) {
+    ) where
+        V: Bounded + Copy,
+    {
         if let Some(source_node) = source_tree.get_node(source_index) {
             if let Some(root) = dest_tree.get_node_mut(dest_index) {
                 root.value = source_node.value;

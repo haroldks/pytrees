@@ -221,15 +221,22 @@ mod lgdt_test {
     use crate::structures::bitsets_structure::BitsetStructure;
     use crate::structures::horizontal_binary_structure::HorizontalBinaryStructure;
     use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
-
+    use rand::Rng;
     #[test]
-    fn random() {
+    fn test_lgdt_murtree_anneal() {
         let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = BitsetStructure::new(&bitset_data);
 
-        let a = LGDT::fit(&mut structure, 1, 4, MurTree::fit);
-        let error = LGDT::get_tree_metric(&a);
-        a.print();
+        let steps = 3;
+        let expected_errors = [151usize, 137, 119, 108, 99, 90, 71, 55, 48, 41];
+
+        for _ in 0..steps {
+            let mut rng = rand::thread_rng();
+            let depth = rng.gen_range(1..11) as usize;
+            let a = LGDT::fit(&mut structure, 1, depth, MurTree::fit);
+            let error = LGDT::get_tree_metric(&a);
+            assert_eq!(expected_errors.contains(&error), true);
+        }
     }
 }

@@ -5,7 +5,14 @@
 
 #### TODO
 
-- [ ] Create file reader cleaner crate
-- [ ] Horizontal database
-- [ ] Vertical Database
-- [ ] Create a standalone library for the data structures for it to be reusable.
+- [X] Horizontal database
+- [X] Vertical Database
+- [ ] Create a standalone library for the data structures for it to be reusable (meh)
+- [ ] Create file reader cleaner crate (meh)
+- [ ] Information Gain Depth two implementation
+- [ ] Merge useless leaves
+- [ ] Testing for LGDT ?? (meh)
+- [ ] Move from bencher to criterion
+- [ ] Benchmarking for all data structures and LGDT
+- [ ] Field in the tree for another metric ?
+- [ ] Rework generic part of the implementation

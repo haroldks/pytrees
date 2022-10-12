@@ -61,24 +61,6 @@ pub(crate) trait Algorithm {
         func(structure, candidates, increasing)
     }
 
-    fn get_misclassification_error(classes_support: &[usize]) -> usize {
-        classes_support.iter().sum::<usize>() - classes_support.iter().max().unwrap()
-    }
-
-    fn get_top_class(classes_support: &[usize]) -> usize {
-        classes_support
-            .iter()
-            .enumerate()
-            .fold((0, classes_support[0]), |(idxm, valm), (idx, val)| {
-                if val > &valm {
-                    (idx, *val)
-                } else {
-                    (idxm, valm)
-                }
-            })
-            .0
-    }
-
     fn empty_tree<V>(depth: Depth) -> Tree<NodeData<V>>
     where
         V: Bounded + Copy,
@@ -120,6 +102,26 @@ pub(crate) trait Algorithm {
             true => Some(1),
             false => Some(0),
         };
+    }
+}
+
+pub(crate) trait Basic {
+    fn get_misclassification_error(classes_support: &[usize]) -> usize {
+        classes_support.iter().sum::<usize>() - classes_support.iter().max().unwrap()
+    }
+
+    fn get_top_class(classes_support: &[usize]) -> usize {
+        classes_support
+            .iter()
+            .enumerate()
+            .fold((0, classes_support[0]), |(idxm, valm), (idx, val)| {
+                if val > &valm {
+                    (idx, *val)
+                } else {
+                    (idxm, valm)
+                }
+            })
+            .0
     }
 
     fn get_tree_metric<V>(tree: &Tree<NodeData<V>>) -> V

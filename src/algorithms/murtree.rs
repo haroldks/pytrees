@@ -1,9 +1,11 @@
-use crate::algorithms::algorithm_trait::Algorithm;
+use crate::algorithms::algorithm_trait::{Algorithm, Basic};
 use crate::structures::binary_tree::{NodeData, Tree};
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Depth, Support};
 
 pub struct MurTree {}
+
+impl Basic for MurTree {}
 
 impl Algorithm for MurTree {
     fn fit<S>(structure: &mut S, min_sup: Support, max_depth: Depth) -> Tree<NodeData<usize>>
@@ -24,6 +26,11 @@ impl MurTree {
     {
         // TODO : depth attribute
         let candidates = MurTree::generate_candidates_list(structure, minsup);
+
+        if candidates.len() == 0 {
+            return MurTree::empty_tree(2);
+        }
+
         let matrix = MurTree::build_depth_two_matrix(structure, &candidates);
 
         let mut tree = MurTree::empty_tree(2);
@@ -151,6 +158,11 @@ impl MurTree {
         S: Structure,
     {
         let candidates = MurTree::generate_candidates_list(structure, minsup);
+
+        if candidates.len() == 0 {
+            return MurTree::empty_tree(1);
+        }
+
         let mut tree = MurTree::empty_tree(1);
         let mut left_index = 0;
         let mut right_index = 0;

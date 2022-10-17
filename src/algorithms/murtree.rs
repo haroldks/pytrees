@@ -1,7 +1,7 @@
 use crate::algorithms::algorithm_trait::{Algorithm, Basic};
 use crate::structures::binary_tree::{NodeData, Tree};
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{Depth, Support};
+use crate::structures::structures_types::Support;
 
 pub struct MurTree {}
 
@@ -14,7 +14,7 @@ impl Algorithm for MurTree {
     {
         let candidates = Self::generate_candidates_list(structure, min_sup);
 
-        if candidates.len() == 0 {
+        if candidates.is_empty() {
             return Self::empty_tree(1);
         }
 
@@ -70,7 +70,7 @@ impl Algorithm for MurTree {
         // TODO : depth attribute
         let candidates = Self::generate_candidates_list(structure, min_sup);
 
-        if candidates.len() == 0 {
+        if candidates.is_empty() {
             return Self::empty_tree(2);
         }
 
@@ -118,7 +118,7 @@ impl Algorithm for MurTree {
                     );
                     let right_leaves_error = *right_leaves.iter().min().unwrap();
 
-                    let mut node_error = left_leaves_error + right_leaves_error;
+                    let node_error = left_leaves_error + right_leaves_error;
 
                     let mut past_error = <usize>::MAX;
                     let index = match *val == 0 {

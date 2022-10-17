@@ -2,7 +2,6 @@ use crate::algorithms::algorithm_trait::Basic;
 use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Depth, Support, TreeIndex};
-use num_traits::Bounded;
 
 pub struct LGDT {
     tree: Option<Tree<NodeData>>,
@@ -10,6 +9,12 @@ pub struct LGDT {
 }
 
 impl Basic for LGDT {}
+
+impl Default for LGDT {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl LGDT {
     // TODO: Generic type returns must be investigated.
@@ -216,8 +221,6 @@ mod lgdt_test {
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
     use crate::structures::bitsets_structure::BitsetStructure;
-    use crate::structures::horizontal_binary_structure::HorizontalBinaryStructure;
-    use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
     use rand::Rng;
     #[test]
     fn test_lgdt_murtree_anneal() {

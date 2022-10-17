@@ -1,7 +1,6 @@
 use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Depth, Item, Support, TreeIndex};
-use num_traits::Bounded;
 
 pub trait Algorithm {
     fn build_depth_one_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
@@ -63,7 +62,7 @@ pub trait Algorithm {
     }
 
     fn get_depth_two_leaves_stats(
-        matrix: &Vec<Vec<(usize, usize)>>,
+        matrix: &[Vec<(usize, usize)>],
         classes_support: &[usize],
         first: Item,
         second: Item,

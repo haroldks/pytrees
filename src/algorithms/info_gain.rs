@@ -2,7 +2,7 @@ use crate::algorithms::algorithm_trait::{Algorithm, Basic};
 use crate::algorithms::murtree::MurTree;
 use crate::structures::binary_tree::{NodeData, Tree};
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{Attribute, Depth, Support};
+use crate::structures::structures_types::{Attribute, Support};
 use float_cmp::{ApproxEq, F64Margin};
 
 pub struct InfoGain {
@@ -19,7 +19,7 @@ impl Algorithm for InfoGain {
     {
         let mut candidates = Self::generate_candidates_list(structure, min_sup);
 
-        if candidates.len() == 0 {
+        if candidates.is_empty() {
             return Self::empty_tree(1);
         }
 
@@ -68,7 +68,7 @@ impl Algorithm for InfoGain {
         S: Structure,
     {
         let candidates = InfoGain::generate_candidates_list(structure, min_sup);
-        if candidates.len() == 0 {
+        if candidates.is_empty() {
             return Self::empty_tree(2);
         }
 
@@ -147,7 +147,7 @@ impl Algorithm for InfoGain {
                     node_gain -= Self::compute_entropy(&right_leaves) * weight;
                     let right_leaves_error = *right_leaves.iter().min().unwrap();
 
-                    let mut node_error = left_leaves_error + right_leaves_error;
+                    let node_error = left_leaves_error + right_leaves_error;
 
                     let mut past_info_gain = 0f64;
                     let index = match *val == 0 {
@@ -298,10 +298,10 @@ impl InfoGain {
     fn compute_entropy(covers: &[usize]) -> f64 {
         let support = covers.iter().sum::<usize>();
         let mut entropy = 0f64;
-        for class in 0..covers.len() {
+        for class_support in covers {
             let p = match support {
                 0 => 0f64,
-                _ => covers[class] as f64 / support as f64,
+                _ => *class_support as f64 / support as f64,
             };
 
             let mut log_val = 0f64;

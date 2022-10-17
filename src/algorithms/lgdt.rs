@@ -4,7 +4,7 @@ use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Depth, Support, TreeIndex};
 use num_traits::Bounded;
 
-struct LGDT {
+pub struct LGDT {
     tree: Option<Tree<NodeData>>,
     error: Option<usize>,
 }
@@ -12,7 +12,7 @@ struct LGDT {
 impl Basic for LGDT {}
 
 impl LGDT {
-    // TODO: Generic type returns must be investigated. Should I add field for heuristic also ??
+    // TODO: Generic type returns must be investigated.
     pub fn new() -> Self {
         LGDT {
             tree: None,
@@ -210,6 +210,7 @@ where {
 #[cfg(test)]
 mod lgdt_test {
     use crate::algorithms::algorithm_trait::{Algorithm, Basic};
+    use crate::algorithms::info_gain::InfoGain;
     use crate::algorithms::lgdt::LGDT;
     use crate::algorithms::murtree::MurTree;
     use crate::dataset::binary_dataset::BinaryDataset;
@@ -237,13 +238,19 @@ mod lgdt_test {
     }
 
     #[test]
-    fn test_lgdt_murtree_small_data() {
-        let dataset = BinaryDataset::load("datasets/small_.txt", false, 0.0);
+    fn test_lgdt_info_gain_anneal() {
+        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = BitsetStructure::new(&bitset_data);
-        let tree = LGDT::fit(&mut structure, 1, 100, MurTree::fit);
-        let error = LGDT::get_tree_error(&tree);
-        tree.print();
-        println!("Error {}", error);
+
+        let steps = 3;
+        let expected_errors = [152usize, 151, 149, 126, 89, 79, 69, 57, 50];
+        for _ in 0..steps {
+            let mut rng = rand::thread_rng();
+            let depth = rng.gen_range(1..11) as usize;
+            let a = LGDT::fit(&mut structure, 1, depth, InfoGain::fit);
+            let error = LGDT::get_tree_error(&a);
+            assert_eq!(expected_errors.contains(&error), true);
+        }
     }
 }

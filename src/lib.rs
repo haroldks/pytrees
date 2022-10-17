@@ -11,7 +11,7 @@
 
 extern crate core;
 
-mod algorithms;
+pub mod algorithms;
 pub mod dataset;
 mod main;
 pub mod structures;

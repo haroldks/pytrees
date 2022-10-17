@@ -3,7 +3,7 @@ use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Depth, Item, Support, TreeIndex};
 use num_traits::Bounded;
 
-pub(crate) trait Algorithm {
+pub trait Algorithm {
     fn build_depth_one_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
     where
         S: Structure;
@@ -105,7 +105,6 @@ pub(crate) trait Algorithm {
             }
         }
     }
-
     fn sort_candidates<S, F>(
         structure: &mut S,
         candidates: &Vec<Attribute>,

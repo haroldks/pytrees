@@ -1,3 +1,4 @@
-mod algorithm_trait;
-mod lgdt;
-mod murtree;
+pub mod algorithm_trait;
+pub mod info_gain;
+pub mod lgdt;
+pub mod murtree;

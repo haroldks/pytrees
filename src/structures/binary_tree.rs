@@ -1,21 +1,26 @@
 use crate::structures::structures_types::{Attribute, TreeIndex};
-use num_traits::Bounded;
 
 #[derive(Clone, Copy, Debug)]
-pub struct NodeData<V> {
+pub struct NodeData {
+    // Specific data for decision trees
     pub(crate) test: Option<Attribute>,
-    pub(crate) metric: V,
+    pub(crate) error: usize,
+    pub(crate) metric: Option<f64>,
     pub(crate) out: Option<usize>,
 }
 
-impl<V> NodeData<V> {
-    pub fn new() -> NodeData<V>
-    where
-        V: Bounded,
-    {
+impl Default for NodeData {
+    fn default() -> Self {
+        NodeData::new()
+    }
+}
+
+impl NodeData {
+    pub fn new() -> NodeData {
         NodeData {
             test: None,
-            metric: V::max_value(),
+            error: <usize>::MAX,
+            metric: None,
             out: None,
         }
     }
@@ -167,15 +172,15 @@ mod binary_tree_test {
 
     #[test]
     fn create_node_data() {
-        let data: NodeData<usize> = NodeData::new();
-        assert_eq!(data.metric, <usize>::MAX);
+        let data = NodeData::new();
+        assert_eq!(data.error, <usize>::MAX);
         assert_eq!(data.test.is_none(), true);
         assert_eq!(data.out, None);
     }
 
     #[test]
     fn create_tree_node() {
-        let data: NodeData<usize> = NodeData::new();
+        let data = NodeData::new();
         let node = TreeNode::new(data);
         assert_eq!(node.right, 0);
         assert_eq!(node.left, 0);

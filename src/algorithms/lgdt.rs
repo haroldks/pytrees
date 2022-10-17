@@ -5,7 +5,7 @@ use crate::structures::structures_types::{Attribute, Depth, Support, TreeIndex};
 use num_traits::Bounded;
 
 struct LGDT {
-    tree: Option<Tree<NodeData<usize>>>,
+    tree: Option<Tree<NodeData>>,
     error: Option<usize>,
 }
 
@@ -25,15 +25,15 @@ impl LGDT {
         min_sup: Support,
         max_depth: Depth,
         fit_method: F,
-    ) -> Tree<NodeData<usize>>
+    ) -> Tree<NodeData>
     where
         S: Structure,
-        F: Fn(&mut S, Support, Depth) -> Tree<NodeData<usize>>,
+        F: Fn(&mut S, Support, Depth) -> Tree<NodeData>,
     {
         if max_depth <= 2 {
             fit_method(structure, min_sup, max_depth)
         } else {
-            let mut solution_tree: Tree<NodeData<usize>> = Tree::new();
+            let mut solution_tree: Tree<NodeData> = Tree::new();
 
             let root_tree = fit_method(structure, min_sup, max_depth);
             let mut root_attribute = None;
@@ -63,17 +63,15 @@ impl LGDT {
         }
     }
 
-    fn create_child<V>(tree: &mut Tree<NodeData<V>>, parent: TreeIndex, is_left: bool) -> TreeIndex
-    where
-        V: Bounded + Copy,
-    {
-        let value: NodeData<V> = NodeData::new();
+    fn create_child(tree: &mut Tree<NodeData>, parent: TreeIndex, is_left: bool) -> TreeIndex
+where {
+        let value = NodeData::new();
         let node = TreeNode::new(value);
         tree.add_node(parent, is_left, node)
     }
 
     fn create_leaf<S>(
-        tree: &mut Tree<NodeData<usize>>,
+        tree: &mut Tree<NodeData>,
         structure: &mut S,
         parent: TreeIndex,
         is_left: bool,
@@ -87,20 +85,18 @@ impl LGDT {
         let error = LGDT::get_misclassification_error(&classes_support);
 
         if let Some(leaf) = tree.get_node_mut(leaf_index) {
-            leaf.value.metric = error;
+            leaf.value.error = error;
             leaf.value.out = Some(top_class)
         }
         error
     }
 
-    fn move_tree<V>(
-        dest_tree: &mut Tree<NodeData<V>>,
+    fn move_tree(
+        dest_tree: &mut Tree<NodeData>,
         dest_index: TreeIndex,
-        source_tree: &Tree<NodeData<V>>,
+        source_tree: &Tree<NodeData>,
         source_index: TreeIndex,
-    ) where
-        V: Bounded + Copy,
-    {
+    ) {
         if let Some(source_node) = source_tree.get_node(source_index) {
             if let Some(root) = dest_tree.get_node_mut(dest_index) {
                 root.value = source_node.value;
@@ -134,7 +130,7 @@ impl LGDT {
 
     fn build_tree_recurse<S, F>(
         structure: &mut S,
-        tree: &mut Tree<NodeData<usize>>,
+        tree: &mut Tree<NodeData>,
         index: TreeIndex,
         next: Option<Attribute>,
         minsup: Support,
@@ -143,7 +139,7 @@ impl LGDT {
     ) -> usize
     where
         S: Structure,
-        F: Fn(&mut S, Support, Depth) -> Tree<NodeData<usize>>,
+        F: Fn(&mut S, Support, Depth) -> Tree<NodeData>,
     {
         let branches = [false, true];
         return if depth <= 1 {
@@ -151,7 +147,7 @@ impl LGDT {
             for (i, val) in branches.iter().enumerate() {
                 let _ = structure.push((next.unwrap(), i));
                 let child_tree = fit_method(structure, minsup, 1);
-                let child_error = LGDT::get_tree_metric(&child_tree);
+                let child_error = LGDT::get_tree_error(&child_tree);
 
                 if child_error == <usize>::MAX {
                     let child_error = LGDT::create_leaf(tree, structure, index, !*val);
@@ -171,7 +167,7 @@ impl LGDT {
             for (i, val) in branches.iter().enumerate() {
                 let _ = structure.push((next.unwrap(), i));
                 let child_tree = fit_method(structure, minsup, 2);
-                let mut child_error = LGDT::get_tree_metric(&child_tree);
+                let mut child_error = LGDT::get_tree_error(&child_tree);
                 if child_error == <usize>::MAX {
                     child_error = LGDT::create_leaf(tree, structure, index, !*val);
                 } else {
@@ -204,7 +200,7 @@ impl LGDT {
                 structure.backtrack();
             }
             if let Some(parent) = tree.get_node_mut(index) {
-                parent.value.metric = parent_error;
+                parent.value.error = parent_error;
             }
             parent_error
         };
@@ -235,8 +231,19 @@ mod lgdt_test {
             let mut rng = rand::thread_rng();
             let depth = rng.gen_range(1..11) as usize;
             let a = LGDT::fit(&mut structure, 1, depth, MurTree::fit);
-            let error = LGDT::get_tree_metric(&a);
+            let error = LGDT::get_tree_error(&a);
             assert_eq!(expected_errors.contains(&error), true);
         }
+    }
+
+    #[test]
+    fn test_lgdt_murtree_small_data() {
+        let dataset = BinaryDataset::load("datasets/small_.txt", false, 0.0);
+        let bitset_data = BitsetStructure::format_input_data(&dataset);
+        let mut structure = BitsetStructure::new(&bitset_data);
+        let tree = LGDT::fit(&mut structure, 1, 100, MurTree::fit);
+        let error = LGDT::get_tree_error(&tree);
+        tree.print();
+        println!("Error {}", error);
     }
 }

@@ -1,12 +1,26 @@
 use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{Attribute, Depth, Support, TreeIndex};
+use crate::structures::structures_types::{Attribute, Depth, Item, Support, TreeIndex};
 use num_traits::Bounded;
 
 pub(crate) trait Algorithm {
-    fn fit<S>(structure: &mut S, min_sup: Support, max_depth: Depth) -> Tree<NodeData<usize>>
+    fn build_depth_one_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
     where
         S: Structure;
+
+    fn build_depth_two_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
+    where
+        S: Structure;
+
+    fn fit<S>(structure: &mut S, min_sup: Support, max_depth: Depth) -> Tree<NodeData>
+    where
+        S: Structure,
+    {
+        match max_depth < 2 {
+            true => Self::build_depth_one_tree(structure, min_sup),
+            false => Self::build_depth_two_tree(structure, min_sup),
+        }
+    }
 
     fn generate_candidates_list<S>(structure: &mut S, min_sup: Support) -> Vec<Attribute>
     where
@@ -36,16 +50,60 @@ pub(crate) trait Algorithm {
             let val = structure.labels_support();
             matrix[i][i] = (val[0], val[1]);
 
-            for j in i + 1..size {
-                structure.push((candidates[j], 1));
+            for second in i + 1..size {
+                structure.push((candidates[second], 1));
                 let val = structure.labels_support();
                 structure.backtrack();
-                matrix[i][j] = (val[0], val[1]);
-                matrix[j][i] = (val[0], val[1]);
+                matrix[i][second] = (val[0], val[1]);
+                matrix[second][i] = (val[0], val[1]);
             }
             structure.backtrack();
         }
         matrix
+    }
+
+    fn get_depth_two_leaves_stats(
+        matrix: &Vec<Vec<(usize, usize)>>,
+        classes_support: &[usize],
+        first: Item,
+        second: Item,
+    ) -> [usize; 2] {
+        match first.1 == 0 {
+            true => {
+                let mut leaves = [0usize; 2];
+                match second.1 == 0 {
+                    true => {
+                        leaves[0] = classes_support[0] + matrix[first.0][second.0].0
+                            - matrix[first.0][first.0].0
+                            - matrix[second.0][second.0].0;
+                        leaves[1] = classes_support[1] + matrix[first.0][second.0].1
+                            - matrix[first.0][first.0].1
+                            - matrix[second.0][second.0].1;
+                        leaves
+                    }
+                    false => {
+                        leaves[0] = matrix[second.0][second.0].0 - matrix[first.0][second.0].0;
+                        leaves[1] = matrix[second.0][second.0].1 - matrix[first.0][second.0].1;
+                        leaves
+                    }
+                }
+            }
+            false => {
+                let mut leaves = [0usize; 2];
+                match second.1 == 0 {
+                    true => {
+                        leaves[0] = matrix[first.0][first.0].0 - matrix[first.0][second.0].0;
+                        leaves[1] = matrix[first.0][first.0].1 - matrix[first.0][second.0].1;
+                        leaves
+                    }
+                    false => {
+                        leaves[0] = matrix[first.0][second.0].0;
+                        leaves[1] = matrix[first.0][second.0].1;
+                        leaves
+                    }
+                }
+            }
+        }
     }
 
     fn sort_candidates<S, F>(
@@ -61,29 +119,23 @@ pub(crate) trait Algorithm {
         func(structure, candidates, increasing)
     }
 
-    fn empty_tree<V>(depth: Depth) -> Tree<NodeData<V>>
-    where
-        V: Bounded + Copy,
-    {
+    fn empty_tree(depth: Depth) -> Tree<NodeData> {
         let mut tree = Tree::new();
-        let value: NodeData<V> = NodeData::new();
+        let value = NodeData::new();
         let node = TreeNode::new(value);
         let root = tree.add_root(node);
         Self::build_tree_recurse(&mut tree, root, depth);
         tree
     }
 
-    fn build_tree_recurse<V>(tree: &mut Tree<NodeData<V>>, parent: TreeIndex, depth: Depth)
-    where
-        V: Bounded + Copy,
-    {
+    fn build_tree_recurse(tree: &mut Tree<NodeData>, parent: TreeIndex, depth: Depth) {
         if depth == 0 {
             if let Some(parent_node) = tree.get_node_mut(parent) {
                 parent_node.left = 0;
                 parent_node.right = 0;
             }
         } else {
-            let value: NodeData<V> = NodeData::new();
+            let value = NodeData::new();
             let node = TreeNode::new(value);
             let left = tree.add_node(parent, true, node);
             Self::build_tree_recurse(tree, left, depth - 1);
@@ -93,11 +145,8 @@ pub(crate) trait Algorithm {
         }
     }
 
-    fn create_leaves<V>(leaf_ref: &mut TreeNode<NodeData<V>>, data: &[V], error: V)
-    where
-        V: Bounded + Copy + PartialOrd,
-    {
-        leaf_ref.value.metric = error;
+    fn create_leaves(leaf_ref: &mut TreeNode<NodeData>, data: &[usize], error: usize) {
+        leaf_ref.value.error = error;
         leaf_ref.value.out = match data[1] > data[0] {
             true => Some(1),
             false => Some(0),
@@ -124,13 +173,10 @@ pub(crate) trait Basic {
             .0
     }
 
-    fn get_tree_metric<V>(tree: &Tree<NodeData<V>>) -> V
-    where
-        V: Bounded + Copy,
-    {
+    fn get_tree_error(tree: &Tree<NodeData>) -> usize {
         if let Some(root) = tree.get_node(tree.get_root_index()) {
-            return root.value.metric;
+            return root.value.error;
         }
-        V::max_value()
+        <usize>::MAX
     }
 }

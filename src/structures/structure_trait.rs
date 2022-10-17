@@ -12,7 +12,7 @@ pub trait Structure {
     fn temp_push(&mut self, item: Item) -> Support;
     fn reset(&mut self);
     fn get_position(&self) -> &Position;
-    fn change_position(&mut self, itemset: &Vec<Item>) -> Support {
+    fn change_position(&mut self, itemset: &[Item]) -> Support {
         self.reset();
         for item in itemset {
             self.push(*item);

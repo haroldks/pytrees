@@ -9,6 +9,9 @@
 - [X] Vertical Database
 - [ ] Create a standalone library for the data structures for it to be reusable (meh)
 - [ ] Create file reader cleaner crate (meh)
+- [ ] Integration test using macro rule
+- [ ] Add field for another metric
+  - [ ] Change function get metric to get error
 - [ ] Information Gain Depth two implementation
 - [ ] Merge useless leaves
 - [ ] Testing for LGDT ?? (meh)
@@ -16,3 +19,4 @@
 - [ ] Benchmarking for all data structures and LGDT
 - [ ] Field in the tree for another metric ?
 - [ ] Rework generic part of the implementation
+- [ ] Change some vectors to arrays

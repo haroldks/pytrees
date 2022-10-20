@@ -146,10 +146,9 @@ where {
         S: Structure,
         F: Fn(&mut S, Support, Depth) -> Tree<NodeData>,
     {
-        let branches = [false, true];
         return if depth <= 1 {
             let mut parent_error = 0;
-            for (i, val) in branches.iter().enumerate() {
+            for (i, val) in [false, true].iter().enumerate() {
                 let _ = structure.push((next.unwrap(), i));
                 let child_tree = fit_method(structure, minsup, 1);
                 let child_error = LGDT::get_tree_error(&child_tree);
@@ -166,10 +165,13 @@ where {
 
                 structure.backtrack();
             }
+            if let Some(parent) = tree.get_node_mut(index) {
+                parent.value.error = parent_error;
+            }
             parent_error
         } else {
             let mut parent_error = 0;
-            for (i, val) in branches.iter().enumerate() {
+            for (i, val) in [false, true].iter().enumerate() {
                 let _ = structure.push((next.unwrap(), i));
                 let child_tree = fit_method(structure, minsup, 2);
                 let mut child_error = LGDT::get_tree_error(&child_tree);

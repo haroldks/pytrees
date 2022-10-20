@@ -178,3 +178,4 @@ datasets/*
 !datasets/ionosphere.txt
 !datasets/splice-1.txt
 !datasets/letter.txt
+!datasets/mushroom.txt

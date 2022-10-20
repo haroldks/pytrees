@@ -10,6 +10,7 @@
 - [ ] Create a standalone library for the data structures for it to be reusable (meh)
 - [ ] Create file reader cleaner crate (meh)
 - [ ] Integration test using macro rule
+- [ ] Dive in pruning methods and add it to my algorithms.
 - [ ] Add field for another metric
   - [ ] Change function get metric to get error
 - [ ] Information Gain Depth two implementation

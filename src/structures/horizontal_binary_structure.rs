@@ -36,7 +36,7 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
     fn labels_support(&self) -> Vec<Support> {
         let mut support = Vec::with_capacity(self.num_labels);
         if let Some(state) = self.get_last_state() {
-            for label_state in state.iter().take(self.num_labels) {
+            for label_state in state.iter() {
                 support.push(label_state.len());
             }
         }
@@ -129,7 +129,7 @@ impl<'data> HorizontalBinaryStructure<'data> {
     fn pushing(&mut self, item: Item) {
         let mut new_state = HBSState::new();
         if let Some(last) = self.get_last_state() {
-            for (i, label_state) in last.iter().enumerate().take(self.num_labels) {
+            for (i, label_state) in last.iter().enumerate() {
                 let mut label_transactions = Vec::with_capacity(label_state.len());
                 for transaction in label_state {
                     let input = &self.input[i][*transaction];

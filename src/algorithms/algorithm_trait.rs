@@ -152,7 +152,7 @@ pub trait Algorithm {
     }
 }
 
-pub(crate) trait Basic {
+pub trait Basic {
     fn get_misclassification_error(classes_support: &[usize]) -> usize {
         classes_support.iter().sum::<usize>() - classes_support.iter().max().unwrap()
     }

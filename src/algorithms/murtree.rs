@@ -25,9 +25,8 @@ impl Algorithm for MurTree {
             left_index = root.left;
             right_index = root.right
         }
-        for candidate in candidates.iter().take(candidates.len()) {
+        for candidate in candidates.iter() {
             structure.push((*candidate, 0));
-
             let classes_support = structure.labels_support();
             let left_class = Self::get_top_class(&classes_support);
             let left_error = Self::get_misclassification_error(&classes_support);
@@ -79,7 +78,7 @@ impl Algorithm for MurTree {
         let mut tree = Self::empty_tree(2);
         let classes_support = structure.labels_support();
 
-        for (i, first) in candidates.iter().enumerate().take(candidates.len()) {
+        for (i, first) in candidates.iter().enumerate() {
             let mut root_tree = Self::empty_tree(2);
             let mut left_index = 0;
             let mut right_index = 0;

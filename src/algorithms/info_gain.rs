@@ -102,7 +102,7 @@ impl Algorithm for InfoGain {
                 right_index = root_node.right;
             }
 
-            for (j, second) in candidates.iter().enumerate().take(candidates.len()) {
+            for (j, second) in candidates.iter().enumerate() {
                 if i == j {
                     continue;
                 }
@@ -337,7 +337,6 @@ mod info_gain_test {
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
         let tree = InfoGain::build_depth_one_tree(&mut structure, 1);
-        tree.print();
-        println!("Error {}", InfoGain::get_tree_error(&tree));
+        assert_eq!(InfoGain::get_tree_error(&tree), 152);
     }
 }

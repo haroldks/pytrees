@@ -1,5 +1,6 @@
 use paste::paste;
 use perf_lgdt::algorithms::algorithm_trait::{Algorithm, Basic};
+use perf_lgdt::algorithms::idk::IDK;
 use perf_lgdt::algorithms::info_gain::InfoGain;
 use perf_lgdt::algorithms::lgdt::LGDT;
 use perf_lgdt::algorithms::murtree::MurTree;
@@ -20,7 +21,7 @@ macro_rules! integration_tests_lgdt {
                     let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
                     let horizontal_data = HorizontalBinaryStructure::format_input_data(&data);
                     let mut structure = HorizontalBinaryStructure::new(&horizontal_data);
-                    assert_eq!(solve_instance(&mut structure, $minsup, $depth, $algo), $value);
+                    assert_eq!(solve_instance_lgdt(&mut structure, $minsup, $depth, $algo), $value);
                 }
 
 
@@ -29,7 +30,7 @@ macro_rules! integration_tests_lgdt {
                     let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
                     let horizontal_data = BitsetStructure::format_input_data(&data);
                     let mut structure = BitsetStructure::new(&horizontal_data);
-                    assert_eq!(solve_instance(&mut structure, $minsup, $depth, $algo), $value);
+                    assert_eq!(solve_instance_lgdt(&mut structure, $minsup, $depth, $algo), $value);
                 }
 
                 #[test]
@@ -37,20 +38,64 @@ macro_rules! integration_tests_lgdt {
                     let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
                     let horizontal_data = RSparseBitsetStructure::format_input_data(&data);
                     let mut structure = RSparseBitsetStructure::new(&horizontal_data);
-                    assert_eq!(solve_instance(&mut structure, $minsup, $depth, $algo), $value);
+                    assert_eq!(solve_instance_lgdt(&mut structure, $minsup, $depth, $algo), $value);
                 }
             }
         )*
     }
 }
 
-fn solve_instance<S>(structure: &mut S, minsup: Support, depth: Depth, algo: &str) -> usize
+macro_rules! integration_tests_idk {
+    ($($name:ident: $minsup:expr, $algo:expr, $value:expr;)*) => {
+        $(
+            paste!{
+                #[test]
+                 fn [<idk_ $name _ $algo _horizontal_ $name _minsup_ $minsup>]() {
+                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let horizontal_data = HorizontalBinaryStructure::format_input_data(&data);
+                    let mut structure = HorizontalBinaryStructure::new(&horizontal_data);
+                    assert_eq!(solve_instance_idk(&mut structure, $minsup, $algo), $value);
+                }
+
+
+                #[test]
+                 fn [<idk_ $name _ $algo _bitset_ $name _minsup_ $minsup>]() {
+                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let horizontal_data = BitsetStructure::format_input_data(&data);
+                    let mut structure = BitsetStructure::new(&horizontal_data);
+                    assert_eq!(solve_instance_idk(&mut structure, $minsup, $algo), $value);
+                }
+
+                #[test]
+                 fn [<idk_ $name _ $algo _rsparse_ $name _minsup_ $minsup>]() {
+                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let horizontal_data = RSparseBitsetStructure::format_input_data(&data);
+                    let mut structure = RSparseBitsetStructure::new(&horizontal_data);
+                    assert_eq!(solve_instance_idk(&mut structure, $minsup, $algo), $value);
+                }
+            }
+        )*
+    }
+}
+
+fn solve_instance_lgdt<S>(structure: &mut S, minsup: Support, depth: Depth, algo: &str) -> usize
 where
     S: Structure,
 {
     let tree = match algo.eq("murtree") {
         true => LGDT::fit(structure, minsup, depth, MurTree::fit),
         false => LGDT::fit(structure, minsup, depth, InfoGain::fit),
+    };
+    LGDT::get_tree_error(&tree)
+}
+
+fn solve_instance_idk<S>(structure: &mut S, minsup: Support, algo: &str) -> usize
+where
+    S: Structure,
+{
+    let tree = match algo.eq("murtree") {
+        true => IDK::fit(structure, minsup, MurTree::fit),
+        false => IDK::fit(structure, minsup, InfoGain::fit),
     };
     LGDT::get_tree_error(&tree)
 }
@@ -73,4 +118,10 @@ integration_tests_lgdt! {
     mushroom: 1, 4, "infogain", 0;
     mushroom: 5, 4, "murtree", 0;
     mushroom: 5, 4, "infogain", 0;
+}
+
+integration_tests_idk! {
+    anneal: 1, "murtree", 34;
+    mushroom: 1, "infogain", 0;
+    mushroom: 1, "murtree", 0;
 }

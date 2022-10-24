@@ -7,13 +7,13 @@
 
 - [X] Horizontal database
 - [X] Vertical Database
+- [x] Information Gain Depth two implementation
+- [x] Add field for another metric
+  - [x] Change function get metric to get error
+- [x] Integration test using macro rule
 - [ ] Create a standalone library for the data structures for it to be reusable (meh)
-- [ ] Create file reader cleaner crate (meh)
-- [ ] Integration test using macro rule
+- [ ] Automate dependencies installation for python wrapper
 - [ ] Dive in pruning methods and add it to my algorithms.
-- [ ] Add field for another metric
-  - [ ] Change function get metric to get error
-- [ ] Information Gain Depth two implementation
 - [ ] Merge useless leaves
 - [ ] Testing for LGDT ?? (meh)
 - [ ] Move from bencher to criterion

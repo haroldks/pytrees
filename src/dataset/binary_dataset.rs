@@ -1,5 +1,6 @@
 use self::super::data_trait::Dataset;
 use super::data_types::Data;
+use ndarray::{Array, IxDyn};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::HashSet;
@@ -52,6 +53,30 @@ impl Dataset for BinaryDataset {
         }
     }
 
+    fn load_from_numpy(input: &Array<usize, IxDyn>, target: &Array<usize, IxDyn>) -> Self {
+        let targets = target.to_owned().into_raw_vec();
+        let mut inputs = vec![];
+        for row in input.rows() {
+            inputs.push(row.to_vec());
+        }
+        let train_size = inputs.len();
+        let num_attributes = inputs[0].len();
+        let num_labels = targets.iter().collect::<HashSet<_>>().len();
+        let train: Data = (targets, inputs);
+
+        Self {
+            filename: "from_python".to_string(),
+            shuffle: false,
+            split: 0.0f64,
+            train,
+            test: None,
+            size: train_size,
+            train_size,
+            num_labels,
+            num_attributes,
+        }
+    }
+
     fn size(&self) -> usize {
         self.size
     }
@@ -96,6 +121,8 @@ impl BinaryDataset {
 mod test_binary_dataset {
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
+    use ndarray::{arr1, arr2, Array1, Array2};
+    use numpy::pyo3::ffi::binaryfunc;
     use std::panic;
 
     #[test]
@@ -170,5 +197,17 @@ mod test_binary_dataset {
         let dataset = BinaryDataset::load("datasets/small.txt", true, 0.0);
         assert_eq!(dataset.size(), 4);
         assert_eq!(dataset.num_labels(), 2);
+    }
+
+    #[test]
+    fn binary_dataset_numpy() {
+        let targets = arr1(&[0usize, 0, 1, 1]).into_dyn();
+        let input = arr2(&[[1usize, 0, 1], [0, 1, 1], [0, 0, 0], [0, 1, 0]]).into_dyn();
+        let dataset = BinaryDataset::load_from_numpy(&input, &targets);
+
+        assert_eq!(dataset.size(), 4);
+        assert_eq!(dataset.num_labels(), 2);
+        assert_eq!(dataset.shuffle, false);
+        assert_eq!(dataset.test.is_none(), true);
     }
 }

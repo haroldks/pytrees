@@ -1,9 +1,12 @@
 use crate::dataset::data_types::Data;
+use ndarray::{Array, IxDyn};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
 
 pub trait Dataset {
     fn load(filename: &str, shuffle: bool, split: f64) -> Self;
+
+    fn load_from_numpy(input: &Array<usize, IxDyn>, target: &Array<usize, IxDyn>) -> Self;
 
     fn size(&self) -> usize;
 

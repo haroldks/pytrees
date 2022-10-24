@@ -1,6 +1,7 @@
 use crate::structures::structures_types::{Attribute, TreeIndex};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct NodeData {
     // Specific data for decision trees
     pub(crate) test: Option<Attribute>,
@@ -26,6 +27,7 @@ impl NodeData {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct TreeNode<T> {
     pub value: T,
     pub(crate) index: TreeIndex,
@@ -44,6 +46,7 @@ impl<T> TreeNode<T> {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Tree<T> {
     tree: Vec<TreeNode<T>>,
 }

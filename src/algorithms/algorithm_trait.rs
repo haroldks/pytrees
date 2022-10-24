@@ -177,4 +177,69 @@ pub trait Basic {
         }
         <usize>::MAX
     }
+
+    fn create_child(tree: &mut Tree<NodeData>, parent: TreeIndex, is_left: bool) -> TreeIndex
+where {
+        let value = NodeData::new();
+        let node = TreeNode::new(value);
+        tree.add_node(parent, is_left, node)
+    }
+
+    fn create_leaf<S>(
+        tree: &mut Tree<NodeData>,
+        structure: &mut S,
+        parent: TreeIndex,
+        is_left: bool,
+    ) -> usize
+    where
+        S: Structure,
+    {
+        let leaf_index = Self::create_child(tree, parent, is_left);
+        let classes_support = structure.labels_support();
+        let top_class = Self::get_top_class(&classes_support);
+        let error = Self::get_misclassification_error(&classes_support);
+
+        if let Some(leaf) = tree.get_node_mut(leaf_index) {
+            leaf.value.error = error;
+            leaf.value.out = Some(top_class)
+        }
+        error
+    }
+
+    fn move_tree(
+        dest_tree: &mut Tree<NodeData>,
+        dest_index: TreeIndex,
+        source_tree: &Tree<NodeData>,
+        source_index: TreeIndex,
+    ) {
+        if let Some(source_node) = source_tree.get_node(source_index) {
+            if let Some(root) = dest_tree.get_node_mut(dest_index) {
+                root.value = source_node.value;
+            }
+            let source_left_index = source_node.left;
+
+            if source_left_index > 0 {
+                let mut left_index = 0;
+                if let Some(root) = dest_tree.get_node_mut(dest_index) {
+                    left_index = root.left;
+                    if left_index == 0 {
+                        left_index = Self::create_child(dest_tree, dest_index, true);
+                    }
+                }
+                Self::move_tree(dest_tree, left_index, source_tree, source_left_index)
+            }
+
+            let source_right_index = source_node.right;
+            if source_right_index > 0 {
+                let mut right_index = 0;
+                if let Some(root) = dest_tree.get_node_mut(dest_index) {
+                    right_index = root.right;
+                    if right_index == 0 {
+                        right_index = Self::create_child(dest_tree, dest_index, false);
+                    }
+                }
+                Self::move_tree(dest_tree, right_index, source_tree, source_right_index)
+            }
+        }
+    }
 }

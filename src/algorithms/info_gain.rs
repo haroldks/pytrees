@@ -71,6 +71,9 @@ impl Algorithm for InfoGain {
         if candidates.is_empty() {
             return Self::empty_tree(2);
         }
+        if candidates.len() < 2 {
+            return Self::build_depth_one_tree(structure, min_sup);
+        }
 
         let matrix = MurTree::build_depth_two_matrix(structure, &candidates);
 

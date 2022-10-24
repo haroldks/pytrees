@@ -40,8 +40,8 @@ pub fn anneal_rsparse_benchmark(c: &mut Criterion) {
     });
 }
 
-fn compare_struct_on_anneal(c: &mut Criterion) {
-    let filename = "datasets/anneal.txt";
+fn compare_struct_on_dataset(c: &mut Criterion) {
+    let filename = "datasets/mushroom.txt";
     let dataset = BinaryDataset::load(filename, false, 0.0);
     let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
     let mut rsparse_struct = RSparseBitsetStructure::new(&bitset_data);
@@ -50,8 +50,8 @@ fn compare_struct_on_anneal(c: &mut Criterion) {
     let mut hz_struct = HorizontalBinaryStructure::new(&horizontal_data);
     let mut group = c.benchmark_group("LGDT");
 
-    for depth in 1..10 {
-        for minsup in [1, 5, 10, 100] {
+    for depth in 1..11 {
+        for minsup in [1, 5] {
             let parameter = (minsup, depth);
             let parameter_string = format!("min_d {} / depth {}", minsup, depth);
             group.bench_with_input(

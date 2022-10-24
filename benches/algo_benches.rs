@@ -103,7 +103,7 @@ fn compare_struct_on_dataset(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    compare_struct_on_anneal,
+    compare_struct_on_dataset,
     //anneal_horiz_benchmark,
     //anneal_bitset_benchmark,
     //anneal_rsparse_benchmark

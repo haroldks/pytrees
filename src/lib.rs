@@ -9,7 +9,7 @@ use crate::structures::bitsets_structure::BitsetStructure;
 use crate::structures::horizontal_binary_structure::HorizontalBinaryStructure;
 use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{Depth, HorizontalData, Support};
+use crate::structures::structures_types::{Depth, Support};
 use std::time::Instant;
 
 use log::info;
@@ -31,7 +31,7 @@ fn perf_lgdt(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         input: PyReadonlyArrayDyn<f64>,
         target: PyReadonlyArrayDyn<f64>,
         min_sup: Support,
-        mut max_depth: Depth,
+        max_depth: Depth,
         data_structure: &str,
         fit_method: &str,
         verbose: bool,

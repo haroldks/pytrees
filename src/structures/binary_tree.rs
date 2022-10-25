@@ -27,7 +27,7 @@ impl NodeData {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct TreeNode<T> {
     pub value: T,
     pub(crate) index: TreeIndex,
@@ -46,7 +46,7 @@ impl<T> TreeNode<T> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Tree<T> {
     tree: Vec<TreeNode<T>>,
 }
@@ -68,6 +68,34 @@ impl<T> Tree<T> {
 
     pub fn len(&self) -> usize {
         self.tree.len()
+    }
+
+    pub fn actual_len(&self) -> usize {
+        self.count_node_recursion(self.get_root_index())
+    }
+
+    fn count_node_recursion(&self, node_index: TreeIndex) -> usize {
+        let mut left_index = 0;
+        let mut right_index = 0;
+        if let Some(node) = self.get_node(node_index) {
+            if node.left == node.right {
+                return 1;
+            } else {
+                left_index = node.left;
+                right_index = node.right;
+            }
+        }
+
+        let mut count = 0;
+
+        if left_index != 0 {
+            count += self.count_node_recursion(left_index);
+        }
+        if right_index != 0 {
+            count += self.count_node_recursion(right_index);
+        }
+
+        count + 1
     }
 
     pub(crate) fn add_node(

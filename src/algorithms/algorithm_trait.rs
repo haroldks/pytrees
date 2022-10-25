@@ -153,6 +153,10 @@ pub trait Algorithm {
 }
 
 pub trait Basic {
+    fn is_leaf(node: &TreeNode<NodeData>) -> bool {
+        node.left == node.right
+    }
+
     fn get_misclassification_error(classes_support: &[usize]) -> usize {
         classes_support.iter().sum::<usize>() - classes_support.iter().max().unwrap()
     }

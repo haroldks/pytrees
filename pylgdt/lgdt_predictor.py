@@ -3,14 +3,18 @@ import sys
 
 from sklearn.base import BaseEstimator
 from .exceptions import TreeNotFoundError, SearchFailedError
-from sklearn.metrics import accuracy_score
 from sklearn.exceptions import NotFittedError
 from sklearn.utils import check_X_y, assert_all_finite, check_array
 
 
 class LGDTPredictor(BaseEstimator):
     def __init__(
-        self, min_sup=1, max_depth=1, data_structure="sparse_bitset", fit_method="murtree", log=False
+        self,
+        min_sup=1,
+        max_depth=1,
+        data_structure="sparse_bitset",
+        fit_method="murtree",
+        log=False,
     ):
         self.max_depth = max_depth
         self.min_sup = min_sup
@@ -43,7 +47,6 @@ class LGDTPredictor(BaseEstimator):
         """
 
         target_is_need = True if y is not None else False
-        predict = True
 
         if target_is_need:  # target-needed tasks (eg: classification, regression, etc.)
             # Check that X and y have correct shape and raise ValueError if not
@@ -57,7 +60,15 @@ class LGDTPredictor(BaseEstimator):
 
         import perf_lgdt
 
-        solution = perf_lgdt.run(X, y, self.min_sup, self.max_depth, self.data_structure, self.fit_method, self.log)
+        solution = perf_lgdt.run(
+            X,
+            y,
+            self.min_sup,
+            self.max_depth,
+            self.data_structure,
+            self.fit_method,
+            self.log,
+        )
         solution = json.loads(solution)
         error = self.get_model_train_error(solution)
         if error < sys.maxsize:
@@ -100,7 +111,7 @@ class LGDTPredictor(BaseEstimator):
         return (node["left"] == 0) and (node["right"] == 0)
 
     def predict(self, X):
-        """ Implements the standard predict function for a DL8.5 classifier.
+        """Implements the standard predict function for a DL8.5 classifier.
 
         Parameters
         ----------

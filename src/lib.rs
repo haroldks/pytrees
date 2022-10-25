@@ -12,6 +12,8 @@ use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Depth, Support};
 use std::time::Instant;
 
+use crate::algorithms::idk::IDK;
+use crate::structures::raw_binary_structure::RawBinaryStructure;
 use log::info;
 use numpy::PyReadonlyArrayDyn;
 use pyo3::prelude::PyModule;
@@ -21,10 +23,12 @@ extern crate core;
 pub mod algorithms;
 pub mod dataset;
 mod main;
+mod post_process;
 pub mod structures;
 
 #[pymodule]
 fn perf_lgdt(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+    pyo3_log::try_init().expect("Logger already in use.");
     #[pyfn(m)]
     fn run<'py>(
         py: Python<'py>,
@@ -36,10 +40,13 @@ fn perf_lgdt(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         fit_method: &str,
         verbose: bool,
     ) -> PyObject {
-        pyo3_log::init();
         let input = input.as_array().map(|a| *a as usize);
         let target = target.as_array().map(|a| *a as usize);
         let dataset = BinaryDataset::load_from_numpy(&input, &target);
+
+        if verbose && max_depth == 0 {
+            info!("Use ID3 procedure to generate a full tree.");
+        }
 
         let output = match data_structure {
             "bitset" => {
@@ -59,12 +66,21 @@ fn perf_lgdt(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
                 let mut structure = RSparseBitsetStructure::new(&formatted_data);
                 solve_instance(&mut structure, min_sup, max_depth, fit_method, verbose)
             }
+
+            "horizontal" => {
+                if verbose {
+                    info!("Using Reversible sparse bitset data structure.");
+                }
+                let formatted_data = RSparseBitsetStructure::format_input_data(&dataset);
+                let mut structure = RSparseBitsetStructure::new(&formatted_data);
+                solve_instance(&mut structure, min_sup, max_depth, fit_method, verbose)
+            }
+
             _ => {
                 if verbose {
-                    info!("Using horizontal data structure.");
+                    info!("Using raw binary data structure.");
                 }
-                let formatted_data = HorizontalBinaryStructure::format_input_data(&dataset);
-                let mut structure = HorizontalBinaryStructure::new(&formatted_data);
+                let mut structure = RawBinaryStructure::new(&dataset);
                 solve_instance(&mut structure, min_sup, max_depth, fit_method, verbose)
             }
         };
@@ -89,7 +105,10 @@ fn solve_instance<S: Structure>(
                 info!("Using Information Gain lookahead.");
             }
             let time = Instant::now();
-            let tree = LGDT::fit(structure, min_sup, max_depth, InfoGain::fit);
+            let tree = match max_depth == 0 {
+                true => IDK::fit(structure, min_sup, InfoGain::fit),
+                false => LGDT::fit(structure, min_sup, max_depth, InfoGain::fit),
+            };
             let duration = time.elapsed();
             if verbose {
                 info!("Run for {} milliseconds.", duration.as_millis());
@@ -101,7 +120,10 @@ fn solve_instance<S: Structure>(
                 info!("Using Murtree Depth 2 lookahead.");
             }
             let time = Instant::now();
-            let tree = LGDT::fit(structure, min_sup, max_depth, MurTree::fit);
+            let tree = match max_depth == 0 {
+                true => IDK::fit(structure, min_sup, MurTree::fit),
+                false => LGDT::fit(structure, min_sup, max_depth, MurTree::fit),
+            };
             let duration = time.elapsed();
             if verbose {
                 info!("Run for {} milliseconds.", duration.as_millis());

@@ -170,7 +170,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-datasets/*
+datasets*/*
 !datasets/small.txt
 !datasets/small_.txt
 !datasets/anneal.txt

@@ -8,6 +8,7 @@ use perf_lgdt::dataset::binary_dataset::BinaryDataset;
 use perf_lgdt::dataset::data_trait::Dataset;
 use perf_lgdt::structures::bitsets_structure::BitsetStructure;
 use perf_lgdt::structures::horizontal_binary_structure::HorizontalBinaryStructure;
+use perf_lgdt::structures::raw_binary_structure::RawBinaryStructure;
 use perf_lgdt::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
 use perf_lgdt::structures::structure_trait::Structure;
 use perf_lgdt::structures::structures_types::{Depth, Support};
@@ -16,6 +17,14 @@ macro_rules! integration_tests_lgdt {
     ($($name:ident: $minsup:expr, $depth:expr, $algo:expr, $value:expr;)*) => {
         $(
             paste!{
+
+                 #[test]
+                 fn [<lgdt_ $name _ $algo _raw_ $name _minsup_ $minsup _depth_ $depth>]() {
+                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let mut structure = RawBinaryStructure::new(&data);
+                    assert_eq!(solve_instance_lgdt(&mut structure, $minsup, $depth, $algo), $value);
+                }
+
                 #[test]
                  fn [<lgdt_ $name _ $algo _horizontal_ $name _minsup_ $minsup _depth_ $depth>]() {
                     let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
@@ -49,6 +58,13 @@ macro_rules! integration_tests_idk {
     ($($name:ident: $minsup:expr, $algo:expr, $value:expr;)*) => {
         $(
             paste!{
+                 #[test]
+                 fn [<idk_ $name _ $algo _raw_ $name _minsup_ $minsup>]() {
+                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let mut structure = RawBinaryStructure::new(&data);
+                    assert_eq!(solve_instance_idk(&mut structure, $minsup, $algo), $value);
+                }
+
                 #[test]
                  fn [<idk_ $name _ $algo _horizontal_ $name _minsup_ $minsup>]() {
                     let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);

@@ -7,6 +7,7 @@ use perf_lgdt::dataset::binary_dataset::BinaryDataset;
 use perf_lgdt::dataset::data_trait::Dataset;
 use perf_lgdt::structures::bitsets_structure::BitsetStructure;
 use perf_lgdt::structures::horizontal_binary_structure::HorizontalBinaryStructure;
+use perf_lgdt::structures::raw_binary_structure::RawBinaryStructure;
 use perf_lgdt::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
 use perf_lgdt::structures::structure_trait::Structure;
 
@@ -43,6 +44,7 @@ pub fn anneal_rsparse_benchmark(c: &mut Criterion) {
 fn compare_struct_on_dataset(c: &mut Criterion) {
     let filename = "datasets/mushroom.txt";
     let dataset = BinaryDataset::load(filename, false, 0.0);
+    let mut raw_struct = RawBinaryStructure::new(&dataset);
     let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
     let mut rsparse_struct = RSparseBitsetStructure::new(&bitset_data);
     let mut bitset_struct = BitsetStructure::new(&bitset_data);
@@ -53,7 +55,22 @@ fn compare_struct_on_dataset(c: &mut Criterion) {
     for depth in 1..11 {
         for minsup in [1, 5] {
             let parameter = (minsup, depth);
-            let parameter_string = format!("min_d {} / depth {}", minsup, depth);
+            let parameter_string = format!("s_{}_d_{}", minsup, depth);
+
+            group.bench_with_input(
+                BenchmarkId::new("raw", &parameter_string),
+                &parameter,
+                |b, (depth, minsup)| {
+                    b.iter(|| {
+                        LGDT::fit(
+                            &mut raw_struct,
+                            black_box(*minsup),
+                            black_box(*depth),
+                            MurTree::fit,
+                        )
+                    })
+                },
+            );
             group.bench_with_input(
                 BenchmarkId::new("horizontal", &parameter_string),
                 &parameter,

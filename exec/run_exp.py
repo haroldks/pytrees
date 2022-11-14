@@ -57,6 +57,16 @@ def main():
             folder_path = os.path.join(type_folder, folder)
             results = list()
             for file in os.listdir(folder_path):
+                name = file.split(".")[0]
+                if name in [
+                    "small",
+                    "small_",
+                    "rsparse_dataset",
+                    "tic-tac-toe__",
+                    "tic-tac-toe_",
+                    "appendicitis-un-reduced_converted",
+                ]:
+                    continue
                 path = os.path.join(folder_path, file)
                 infos = get_stats(path)
                 if N_THREADS > 0:

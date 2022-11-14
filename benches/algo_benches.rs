@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode};
 use perf_lgdt::algorithms::algorithm_trait::Algorithm;
 use perf_lgdt::algorithms::info_gain::InfoGain;
 use perf_lgdt::algorithms::lgdt::LGDT;
@@ -51,6 +51,7 @@ fn compare_struct_on_dataset(c: &mut Criterion) {
     let horizontal_data = HorizontalBinaryStructure::format_input_data(&dataset);
     let mut hz_struct = HorizontalBinaryStructure::new(&horizontal_data);
     let mut group = c.benchmark_group("LGDT");
+    // group.sampling_mode(SamplingMode::Flat);
 
     for depth in 1..11 {
         for minsup in [1, 5] {

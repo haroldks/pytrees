@@ -1,3 +1,5 @@
+from sklearn.ensemble import BaggingClassifier
+
 from pylgdt import LGDTPredictor, IDKPredictor
 from sklearn.tree import DecisionTreeClassifier
 
@@ -20,6 +22,32 @@ CART = {
     "name": "cart",
     "instance": DecisionTreeClassifier(
         criterion="gini", splitter="best", max_depth=0, min_samples_split=0
+    ),
+}
+
+BAGGED_LDGT_MUR = {
+    "name": "bagged_lgdt_mur",
+    "instance": BaggingClassifier(
+        base_estimator=LGDTPredictor(
+            min_sup=0, max_depth=0, data_structure="sparse_bitset", fit_method="murtree"
+        ),
+        n_estimators=10,
+        max_samples=0.6321,
+        bootstrap=True,
+    ),
+}
+BAGGED_LDGT_IG = {
+    "name": "bagged_lgdt_ig",
+    "instance": BaggingClassifier(
+        base_estimator=LGDTPredictor(
+            min_sup=0,
+            max_depth=0,
+            data_structure="sparse_bitset",
+            fit_method="infogain",
+        ),
+        n_estimators=10,
+        max_samples=0.6321,
+        bootstrap=True,
     ),
 }
 

@@ -58,11 +58,12 @@ class LGDTPredictor(BaseEstimator):
             assert_all_finite(X)
             X = check_array(X, dtype="float64")
 
+        # print('aaa :', y.astype('float64'))
         import perf_lgdt
 
         solution = perf_lgdt.run(
             X,
-            y,
+            y.astype("float64"),  # For Bagging remove after
             self.min_sup,
             self.max_depth,
             self.data_structure,

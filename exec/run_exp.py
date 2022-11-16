@@ -9,17 +9,17 @@ from functions import (
     get_stats,
     models_plots,
 )
-from models import LGDT_IG, LGDT_MUR, CART
+from models import LGDT_IG, LGDT_MUR, CART, BAGGED_LDGT_MUR, BAGGED_LDGT_IG
 
 MIN_SUP = 5
-DEPTHS = range(2, 3)
+DEPTHS = range(2, 6)
 VAL_SIZE = 0.2
-N_FOLDS = 1
+N_FOLDS = 5
 
 SAVE_PLOTS = True
-N_THREADS = 8
+N_THREADS = 10
 
-NOISE_LEVELS = np.arange(0.0, 0.05, 0.05)
+NOISE_LEVELS = np.arange(0.0, 0.55, 0.05)
 
 RESULTS_DIR = "results"
 SUB_DIRS = ["csv", "data", "plots", "tex", "trees"]
@@ -28,19 +28,20 @@ PLOT_NAME = (
     f"{RESULTS_DIR}/" + "{data_type}/{folder}/plots/{name}_{depth}_{subset}_plot.pdf"
 )
 
-DATA_TYPE = ["raw", "cleaned/non-unique", "cleaned/unique"]
+# DATA_TYPE = ["raw", "cleaned/non-unique", "cleaned/unique"]
+DATA_TYPE = ["raw"]
 BASE_FOLDER = "../data"
 
 DATA_FOLDERS = [
-    "datasetsNina_reduced",
-    "datasetsDL",
+    # "datasetsNina_reduced",
+    # "datasetsDL",
     "datasetsNina",
     "datasetsNL",
     "base_datasets",
     "datasetsHu",
 ]
 
-MODELS = [LGDT_IG, LGDT_MUR, CART]
+MODELS = [LGDT_IG, LGDT_MUR, CART, BAGGED_LDGT_MUR, BAGGED_LDGT_IG]
 
 
 def main():
@@ -127,7 +128,13 @@ def main():
                                 name,
                                 subset=sub,
                                 depth=depth,
-                                methods=["lgdt_mur", "lgdt_ig", "cart"],
+                                methods=[
+                                    "lgdt_mur",
+                                    "lgdt_ig",
+                                    "cart",
+                                    "bagged_lgdt_mur",
+                                    "bagged_lgdt_ig",
+                                ],
                                 save=PLOT_NAME.format(
                                     name=name,
                                     depth=depth,

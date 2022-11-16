@@ -135,6 +135,9 @@ def run_multithread_on_single_test_set(
                 if model["name"] in ["cart"]:
                     instance.max_depth = depth
                     instance.min_samples_split = min_sup
+                elif "bagged" in model["name"]:
+                    instance.base_estimator.max_depth = depth
+                    instance.base_estimator.min_sup = min_sup
                 else:
                     instance.max_depth = depth
                     instance.min_sup = min_sup
@@ -142,7 +145,7 @@ def run_multithread_on_single_test_set(
                     start = time.time()
                     instance.fit(X_train_, noisy_y_train)
                     duration = time.time() - start
-                    if model["name"] in ["cart"]:
+                    if model["name"] in ["cart"] or "bagged" in model["name"]:
                         train_acc = {
                             f'{model["name"]}_train_acc': np.round(
                                 instance.score(X_train_, noisy_y_train), decimals=3

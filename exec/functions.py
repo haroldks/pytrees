@@ -130,7 +130,7 @@ def run_multithread_on_single_test_set(
                 "depth": depth,
             }
             for model in models:
-                print("|\t|", f'{depth}, {model["name"]} {level}, fold {f}')
+                # print("|\t|", f'{depth}, {model["name"]} {level}, fold {f}')
                 instance = model["instance"]
                 if model["name"] in ["cart"]:
                     instance.max_depth = depth

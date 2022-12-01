@@ -1,13 +1,13 @@
 import json
 import sys
 
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, ClassifierMixin
 from .exceptions import TreeNotFoundError, SearchFailedError
 from sklearn.exceptions import NotFittedError
 from sklearn.utils import check_X_y, assert_all_finite, check_array
 
 
-class LGDTPredictor(BaseEstimator):
+class LGDTPredictor(BaseEstimator, ClassifierMixin):
     def __init__(
         self,
         min_sup=1,

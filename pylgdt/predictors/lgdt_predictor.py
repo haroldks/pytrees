@@ -59,9 +59,9 @@ class LGDTPredictor(BaseEstimator, ClassifierMixin):
             X = check_array(X, dtype="float64")
 
         # print('aaa :', y.astype('float64'))
-        import perf_lgdt
+        import lgdt_optimizer
 
-        solution = perf_lgdt.run(
+        solution = lgdt_optimizer.run(
             X,
             y.astype("float64"),  # For Bagging remove after
             self.min_sup,

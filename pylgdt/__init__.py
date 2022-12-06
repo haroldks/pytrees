@@ -1,2 +1,2 @@
-from .lgdt_predictor import LGDTPredictor
-from .idk_predictor import IDKPredictor
+from .predictors import LGDTPredictor, IDKPredictor
+from . import synthetic

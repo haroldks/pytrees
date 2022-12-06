@@ -181,3 +181,4 @@ data/*
 !datasets/splice-1.txt
 !datasets/letter.txt
 !datasets/mushroom.txt
+exec/

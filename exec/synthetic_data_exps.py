@@ -10,8 +10,8 @@ from functions import (
     models_plots,
 )
 
-from fake_trees import generate_decision_trees
-from fake_data import generate_dataset_from_decision_tree
+from pylgdt.synthetic import generate_decision_trees
+from pylgdt.synthetic import generate_dataset_from_decision_tree
 
 from models import LGDT_IG, LGDT_MUR, CART, BAGGED_LDGT_MUR, BAGGED_LDGT_IG
 

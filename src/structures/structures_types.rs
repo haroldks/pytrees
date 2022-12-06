@@ -24,3 +24,12 @@ pub type BitsetStackState = Vec<Bitset>;
 
 // Tree types
 pub type TreeIndex = usize;
+
+// Double Pointer Structure
+
+pub struct DoublePointerData {
+    pub(crate) inputs: Vec<Vec<usize>>,
+    pub(crate) target: Vec<usize>,
+    pub(crate) num_labels: usize,
+    pub(crate) num_attributes: usize,
+}

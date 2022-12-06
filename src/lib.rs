@@ -27,7 +27,7 @@ mod post_process;
 pub mod structures;
 
 #[pymodule]
-fn perf_lgdt(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn lgdt_optimizer(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     pyo3_log::try_init().expect("Logger already in use.");
     #[pyfn(m)]
     fn run<'py>(
@@ -71,8 +71,8 @@ fn perf_lgdt(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
                 if verbose {
                     info!("Using Reversible sparse bitset data structure.");
                 }
-                let formatted_data = RSparseBitsetStructure::format_input_data(&dataset);
-                let mut structure = RSparseBitsetStructure::new(&formatted_data);
+                let formatted_data = HorizontalBinaryStructure::format_input_data(&dataset);
+                let mut structure = HorizontalBinaryStructure::new(&formatted_data);
                 solve_instance(&mut structure, min_sup, max_depth, fit_method, verbose)
             }
 
@@ -84,7 +84,6 @@ fn perf_lgdt(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
                 solve_instance(&mut structure, min_sup, max_depth, fit_method, verbose)
             }
         };
-
         let json = serde_json::to_string_pretty(&output).unwrap();
         json.into_py(py)
     }

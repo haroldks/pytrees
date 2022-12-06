@@ -1,2 +1,9 @@
+[project]
+name = "lgdt_optimizer"
+version = "0.1.0"
+dependencies = [
+"scikit-learn"
+]
+
 [build-system]
 requires = ["setuptools", "wheel", "setuptools-rust"]

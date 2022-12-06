@@ -190,5 +190,5 @@ experiments/data/cleaned/
 experiments/private_experiments/
 
 
-!experiments/know_data.py
+!experiments/runtime_evaluation.py
 !experiments/synthetic_data.py

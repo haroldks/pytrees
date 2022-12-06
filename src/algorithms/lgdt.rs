@@ -161,7 +161,7 @@ mod lgdt_test {
     use rand::Rng;
     #[test]
     fn test_lgdt_murtree_anneal() {
-        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = BitsetStructure::new(&bitset_data);
 
@@ -179,7 +179,7 @@ mod lgdt_test {
 
     #[test]
     fn test_lgdt_info_gain_anneal() {
-        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = BitsetStructure::new(&bitset_data);
 

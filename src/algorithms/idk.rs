@@ -118,7 +118,7 @@ mod idk_test {
 
     #[test]
     fn test_idk() {
-        let dataset = BinaryDataset::load("datasets/ionosphere.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/ionosphere.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
         let a = IDK::fit(&mut structure, 1, InfoGain::fit);

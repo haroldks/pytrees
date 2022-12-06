@@ -336,7 +336,7 @@ mod info_gain_test {
 
     #[test]
     fn gen_anneal_tree() {
-        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
         let tree = InfoGain::build_depth_one_tree(&mut structure, 1);

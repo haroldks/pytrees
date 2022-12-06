@@ -127,7 +127,7 @@ mod test_binary_dataset {
 
     #[test]
     fn can_open_file() {
-        let dataset = BinaryDataset::open_file("datasets/small.txt");
+        let dataset = BinaryDataset::open_file("test_data/small.txt");
 
         let _dataset = match dataset {
             Ok(file) => file,
@@ -140,7 +140,7 @@ mod test_binary_dataset {
     #[test]
     #[should_panic(expected = "Missing File")]
     fn missing_file() {
-        let dataset = BinaryDataset::open_file("datasets/missing.txt");
+        let dataset = BinaryDataset::open_file("test_data/missing.txt");
 
         let _dataset = match dataset {
             Ok(file) => file,
@@ -152,7 +152,7 @@ mod test_binary_dataset {
 
     #[test]
     fn data_is_retrieved() {
-        let dataset = BinaryDataset::open_file("datasets/small.txt");
+        let dataset = BinaryDataset::open_file("test_data/small.txt");
         let content = vec!["0 1 0 1", "0 0 1 1", "1 0 0 0", "1 0 1 0"];
 
         let dataset = match dataset {
@@ -166,15 +166,15 @@ mod test_binary_dataset {
 
     #[test]
     fn binary_dataset_no_shuffle_and_no_split() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
-        assert_eq!(dataset.filename, "datasets/small.txt");
+        let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
+        assert_eq!(dataset.filename, "test_data/small.txt");
         assert_eq!(dataset.shuffle, false);
         assert_eq!(dataset.test.is_none(), true);
     }
 
     #[test]
     fn binary_dataset_no_shuffle_and_half_split() {
-        let mut dataset = BinaryDataset::load("datasets/small.txt", false, 0.5);
+        let mut dataset = BinaryDataset::load("test_data/small.txt", false, 0.5);
         assert_eq!(dataset.test.is_some(), true);
         let data = dataset.test.take().unwrap();
         let rows = data.1;
@@ -186,7 +186,7 @@ mod test_binary_dataset {
 
     #[test]
     fn binary_dataset_shuffled_and_half_split() {
-        let mut dataset = BinaryDataset::load("datasets/small.txt", true, 0.25);
+        let mut dataset = BinaryDataset::load("test_data/small.txt", true, 0.25);
         assert_eq!(dataset.test.is_some(), true);
         let data = dataset.test.take().unwrap();
         assert_eq!(data.0.len(), 1);
@@ -194,7 +194,7 @@ mod test_binary_dataset {
 
     #[test]
     fn binary_dataset_size_and_label() {
-        let dataset = BinaryDataset::load("datasets/small.txt", true, 0.0);
+        let dataset = BinaryDataset::load("test_data/small.txt", true, 0.0);
         assert_eq!(dataset.size(), 4);
         assert_eq!(dataset.num_labels(), 2);
     }

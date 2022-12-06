@@ -260,7 +260,7 @@ mod cost_complexity_pruning {
 
     #[test]
     fn test_subtrees_conversion() {
-        let dataset = BinaryDataset::load("datasets/ionosphere.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/ionosphere.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = BitsetStructure::new(&bitset_data);
 

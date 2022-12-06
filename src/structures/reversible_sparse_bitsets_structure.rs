@@ -230,7 +230,7 @@ mod test_rsparse_bitset {
 
     #[test]
     fn load_sparse_bitset() {
-        let dataset = BinaryDataset::load("datasets/rsparse_dataset.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/rsparse_dataset.txt", false, 0.0);
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
 
@@ -249,7 +249,7 @@ mod test_rsparse_bitset {
 
     #[test]
     fn compute_stats() {
-        let dataset = BinaryDataset::load("datasets/rsparse_dataset.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/rsparse_dataset.txt", false, 0.0);
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
 
@@ -263,7 +263,7 @@ mod test_rsparse_bitset {
 
     #[test]
     fn branching_in_dataset() {
-        let dataset = BinaryDataset::load("datasets/rsparse_dataset.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/rsparse_dataset.txt", false, 0.0);
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
 
@@ -302,7 +302,7 @@ mod test_rsparse_bitset {
 
     #[test]
     fn compute_state_on_small_dataset() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
         let num_attributes = structure.num_attributes();
@@ -335,7 +335,7 @@ mod test_rsparse_bitset {
 
     #[test]
     fn check_reset() {
-        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
 
@@ -354,7 +354,7 @@ mod test_rsparse_bitset {
 
     #[test]
     fn test_temp_push() {
-        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
         let num_attributes = structure.num_attributes();

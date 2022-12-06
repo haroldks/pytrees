@@ -126,7 +126,7 @@ mod test_raw_binary_structure {
 
     #[test]
     fn test() {
-        let dataset = BinaryDataset::load("datasets/small_.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small_.txt", false, 0.0);
         let mut raw_structure = RawBinaryStructure::new(&dataset);
         let support = raw_structure.support();
         println!("Support : {}", support);
@@ -134,7 +134,7 @@ mod test_raw_binary_structure {
 
     #[test]
     fn moving_one_step() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
         let mut data_structure = RawBinaryStructure::new(&dataset);
 
         let position = [(0usize, 0usize)];
@@ -153,7 +153,7 @@ mod test_raw_binary_structure {
     }
     #[test]
     fn backtracking() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
         let mut data_structure = RawBinaryStructure::new(&dataset);
 
         let position = [(2usize, 1usize), (0, 1)];

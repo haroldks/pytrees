@@ -154,7 +154,7 @@ mod test_horizontal_binary_structure {
 
     #[test]
     fn load_horizontal_structure() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
         let horizontal_data = HorizontalBinaryStructure::format_input_data(&dataset);
         let data_structure = HorizontalBinaryStructure::new(&horizontal_data);
         let state = [[[0usize, 1], [0, 1]]];
@@ -170,7 +170,7 @@ mod test_horizontal_binary_structure {
 
     #[test]
     fn moving_one_step() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
         let horizontal_data = HorizontalBinaryStructure::format_input_data(&dataset);
         let mut data_structure = HorizontalBinaryStructure::new(&horizontal_data);
         let position = [(0usize, 0usize)];
@@ -189,7 +189,7 @@ mod test_horizontal_binary_structure {
     }
     #[test]
     fn backtracking() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
         let horizontal_data = HorizontalBinaryStructure::format_input_data(&dataset);
         let mut data_structure = HorizontalBinaryStructure::new(&horizontal_data);
 

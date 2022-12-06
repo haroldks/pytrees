@@ -12,7 +12,7 @@ use perf_lgdt::structures::reversible_sparse_bitsets_structure::RSparseBitsetStr
 use perf_lgdt::structures::structure_trait::Structure;
 
 pub fn anneal_horiz_benchmark(c: &mut Criterion) {
-    let filename = "datasets/anneal.txt";
+    let filename = "test_data/anneal.txt";
     let dataset = BinaryDataset::load(filename, false, 0.0);
     let bitset_data = HorizontalBinaryStructure::format_input_data(&dataset);
     let mut structure = HorizontalBinaryStructure::new(&bitset_data);
@@ -22,7 +22,7 @@ pub fn anneal_horiz_benchmark(c: &mut Criterion) {
 }
 
 pub fn anneal_bitset_benchmark(c: &mut Criterion) {
-    let filename = "datasets/anneal.txt";
+    let filename = "test_data/anneal.txt";
     let dataset = BinaryDataset::load(filename, false, 0.0);
     let bitset_data = BitsetStructure::format_input_data(&dataset);
     let mut structure = BitsetStructure::new(&bitset_data);
@@ -32,7 +32,7 @@ pub fn anneal_bitset_benchmark(c: &mut Criterion) {
 }
 
 pub fn anneal_rsparse_benchmark(c: &mut Criterion) {
-    let filename = "datasets/anneal.txt";
+    let filename = "test_data/anneal.txt";
     let dataset = BinaryDataset::load(filename, false, 0.0);
     let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
     let mut structure = RSparseBitsetStructure::new(&bitset_data);
@@ -42,7 +42,7 @@ pub fn anneal_rsparse_benchmark(c: &mut Criterion) {
 }
 
 fn compare_struct_on_dataset(c: &mut Criterion) {
-    let filename = "datasets/mushroom.txt";
+    let filename = "test_data/mushroom.txt";
     let dataset = BinaryDataset::load(filename, false, 0.0);
     let mut raw_struct = RawBinaryStructure::new(&dataset);
     let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);

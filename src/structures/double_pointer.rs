@@ -151,7 +151,7 @@ mod test_double_pointer {
 
     #[test]
     fn load_double_pointer() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
         let bitset_data = DoublePointerStructure::format_input_data(&dataset);
         let data = [[1usize, 0, 0, 0], [0, 1, 0, 1], [1, 1, 0, 0]];
         let target = [0usize, 0, 1, 1];

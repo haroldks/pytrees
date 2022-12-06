@@ -20,14 +20,14 @@ macro_rules! integration_tests_lgdt {
 
                  #[test]
                  fn [<lgdt_ $name _ $algo _raw_ $name _minsup_ $minsup _depth_ $depth>]() {
-                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let data = BinaryDataset::load(&format!("test_data/{}.txt", stringify!($name)), false, 0.0);
                     let mut structure = RawBinaryStructure::new(&data);
                     assert_eq!(solve_instance_lgdt(&mut structure, $minsup, $depth, $algo), $value);
                 }
 
                 #[test]
                  fn [<lgdt_ $name _ $algo _horizontal_ $name _minsup_ $minsup _depth_ $depth>]() {
-                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let data = BinaryDataset::load(&format!("test_data/{}.txt", stringify!($name)), false, 0.0);
                     let horizontal_data = HorizontalBinaryStructure::format_input_data(&data);
                     let mut structure = HorizontalBinaryStructure::new(&horizontal_data);
                     assert_eq!(solve_instance_lgdt(&mut structure, $minsup, $depth, $algo), $value);
@@ -36,7 +36,7 @@ macro_rules! integration_tests_lgdt {
 
                 #[test]
                  fn [<lgdt_ $name _ $algo _bitset_ $name _minsup_ $minsup _depth_ $depth>]() {
-                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let data = BinaryDataset::load(&format!("test_data/{}.txt", stringify!($name)), false, 0.0);
                     let horizontal_data = BitsetStructure::format_input_data(&data);
                     let mut structure = BitsetStructure::new(&horizontal_data);
                     assert_eq!(solve_instance_lgdt(&mut structure, $minsup, $depth, $algo), $value);
@@ -44,7 +44,7 @@ macro_rules! integration_tests_lgdt {
 
                 #[test]
                  fn [<lgdt_ $name _ $algo _rsparse_ $name _minsup_ $minsup _depth_ $depth>]() {
-                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let data = BinaryDataset::load(&format!("test_data/{}.txt", stringify!($name)), false, 0.0);
                     let horizontal_data = RSparseBitsetStructure::format_input_data(&data);
                     let mut structure = RSparseBitsetStructure::new(&horizontal_data);
                     assert_eq!(solve_instance_lgdt(&mut structure, $minsup, $depth, $algo), $value);
@@ -60,14 +60,14 @@ macro_rules! integration_tests_idk {
             paste!{
                  #[test]
                  fn [<idk_ $name _ $algo _raw_ $name _minsup_ $minsup>]() {
-                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let data = BinaryDataset::load(&format!("test_data/{}.txt", stringify!($name)), false, 0.0);
                     let mut structure = RawBinaryStructure::new(&data);
                     assert_eq!(solve_instance_idk(&mut structure, $minsup, $algo), $value);
                 }
 
                 #[test]
                  fn [<idk_ $name _ $algo _horizontal_ $name _minsup_ $minsup>]() {
-                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let data = BinaryDataset::load(&format!("test_data/{}.txt", stringify!($name)), false, 0.0);
                     let horizontal_data = HorizontalBinaryStructure::format_input_data(&data);
                     let mut structure = HorizontalBinaryStructure::new(&horizontal_data);
                     assert_eq!(solve_instance_idk(&mut structure, $minsup, $algo), $value);
@@ -76,7 +76,7 @@ macro_rules! integration_tests_idk {
 
                 #[test]
                  fn [<idk_ $name _ $algo _bitset_ $name _minsup_ $minsup>]() {
-                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let data = BinaryDataset::load(&format!("test_data/{}.txt", stringify!($name)), false, 0.0);
                     let horizontal_data = BitsetStructure::format_input_data(&data);
                     let mut structure = BitsetStructure::new(&horizontal_data);
                     assert_eq!(solve_instance_idk(&mut structure, $minsup, $algo), $value);
@@ -84,7 +84,7 @@ macro_rules! integration_tests_idk {
 
                 #[test]
                  fn [<idk_ $name _ $algo _rsparse_ $name _minsup_ $minsup>]() {
-                    let data = BinaryDataset::load(&format!("datasets/{}.txt", stringify!($name)), false, 0.0);
+                    let data = BinaryDataset::load(&format!("test_data/{}.txt", stringify!($name)), false, 0.0);
                     let horizontal_data = RSparseBitsetStructure::format_input_data(&data);
                     let mut structure = RSparseBitsetStructure::new(&horizontal_data);
                     assert_eq!(solve_instance_idk(&mut structure, $minsup, $algo), $value);

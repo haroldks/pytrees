@@ -185,7 +185,7 @@ mod murtree_test {
     fn test_full_data_matrix_building() {
         // TODO: Move this test to trait test
 
-        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
         let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
         let candidates = MurTree::generate_candidates_list(&mut structure, 1);

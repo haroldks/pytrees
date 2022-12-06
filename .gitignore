@@ -171,16 +171,17 @@ dmypy.json
 cython_debug/
 
 datasets*/*
+test_data/*
 data/*
 *result*
-!datasets/small.txt
-!datasets/small_.txt
-!datasets/anneal.txt
-!datasets/rsparse_dataset.txt
-!datasets/ionosphere.txt
-!datasets/splice-1.txt
-!datasets/letter.txt
-!datasets/mushroom.txt
+!test_data/small.txt
+!test_data/small_.txt
+!test_data/anneal.txt
+!test_data/rsparse_dataset.txt
+!test_data/ionosphere.txt
+!test_data/splice-1.txt
+!test_data/letter.txt
+!test_data/mushroom.txt
 
 experiments/data/raw/*
 !experiments/data/raw/datasetsDL

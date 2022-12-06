@@ -195,13 +195,13 @@ mod test_bitsets {
 
     #[test]
     fn build_bitset_data() {
-        let dataset = BinaryDataset::load("datasets/small_.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small_.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
     }
 
     #[test]
     fn load_bitset_data_on_simple_small() {
-        let dataset = BinaryDataset::load("datasets/small.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
 
         let expected_inputs = [[8u64], [5], [12]];
@@ -215,7 +215,7 @@ mod test_bitsets {
 
     #[test]
     fn load_bitset_data_on_another_small() {
-        let dataset = BinaryDataset::load("datasets/small_.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small_.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
 
         let expected_inputs = [[654u64], [214], [108], [197]];
@@ -229,7 +229,7 @@ mod test_bitsets {
 
     #[test]
     fn create_data_structure() {
-        let dataset = BinaryDataset::load("datasets/small_.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small_.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let structure = BitsetStructure::new(&bitset_data);
 
@@ -246,7 +246,7 @@ mod test_bitsets {
 
     #[test]
     fn check_backtracking() {
-        let dataset = BinaryDataset::load("datasets/small_.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small_.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = BitsetStructure::new(&bitset_data);
 
@@ -269,7 +269,7 @@ mod test_bitsets {
 
     #[test]
     fn moving_on_step() {
-        let dataset = BinaryDataset::load("datasets/small_.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small_.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = BitsetStructure::new(&bitset_data);
 
@@ -285,7 +285,7 @@ mod test_bitsets {
 
     #[test]
     fn check_label_support() {
-        let dataset = BinaryDataset::load("datasets/small_.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/small_.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = BitsetStructure::new(&bitset_data);
 
@@ -302,7 +302,7 @@ mod test_bitsets {
 
     #[test]
     fn check_on_large_dataset() {
-        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
 
         let expected_targets = [
@@ -1673,7 +1673,7 @@ mod test_bitsets {
 
     #[test]
     fn check_reset() {
-        let dataset = BinaryDataset::load("datasets/anneal.txt", false, 0.0);
+        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
         let bitset_data = BitsetStructure::format_input_data(&dataset);
         let mut structure = BitsetStructure::new(&bitset_data);
 

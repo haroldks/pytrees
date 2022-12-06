@@ -186,7 +186,7 @@ experiments/data/raw/*
 !experiments/data/raw/datasetsDL
 
 experiments/data/cleaned/
-experiments/private_experiments/*
+experiments/private_experiments/
 
 
 !experiments/know_data.py

@@ -1,23 +1,19 @@
 ## Performance-oriented Less Greedy Decision Trees
 
-![Build](https://github.com/haroldks/performance-less-greedy-trees/actions/workflows/rust.yml/badge.svg)
-[![codecov](https://codecov.io/gh/haroldks/performance-less-greedy-trees/branch/master/graph/badge.svg?token=OZ9M8G3GNV)](https://codecov.io/gh/haroldks/performance-less-greedy-trees)
+**Disclaimer: This is a work In Progress**
 
-#### TODO
+Implementation of Less Greedy Decision Tree using rust and a python wrapper.
 
-- [X] Horizontal database
-- [X] Vertical Database
-- [x] Information Gain Depth two implementation
-- [x] Add field for another metric
-  - [x] Change function get metric to get error
-- [x] Integration test using macro rule
-- [ ] Create a standalone library for the data structures for it to be reusable (meh)
-- [ ] Automate dependencies installation for python wrapper
-- [ ] Dive in pruning methods and add it to my algorithms.
-- [ ] Merge useless leaves
-- [ ] Testing for LGDT ?? (meh)
-- [ ] Move from bencher to criterion
-- [ ] Benchmarking for all data structures and LGDT
-- [ ] Field in the tree for another metric ?
-- [ ] Rework generic part of the implementation
-- [ ] Change some vectors to arrays
+An LGDTPredictor class is built around the Rust implementation and is compatible with Scikit-learn
+
+
+### Running the code:
+- Install [Rust](https://www.rust-lang.org/tools/install) and ensure that cargo is available in the **PATH**
+- Download the repository and open a terminal inside it
+- With **pip** just run ```pip install .``` to install the package
+- You can see an example of how to use it in the [example](experiments/example.py).
+- To run the main experiments you need another packages installed using :
+  - ```pip install .[pydl85dep]```
+  - ```pip install .[experiments]```
+
+- Open a terminal in the experiments folder and run the file you want.

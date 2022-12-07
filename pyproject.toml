@@ -7,8 +7,7 @@ dependencies = [
 
 
 [project.optional-dependencies]
-pydl85dep = ["cython", "cvxpy"]
-experiments = ["pandas", "seaborn", "lgdt_optimizer[pydl85dep]", "pydl8.5"]
+experiments = ["pandas", "seaborn", "pydl8.5"]
 
 [build-system]
 requires = ["setuptools", "wheel", "setuptools-rust"]

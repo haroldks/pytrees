@@ -13,7 +13,6 @@ An LGDTPredictor class is built around the Rust implementation and is compatible
 - With **pip** just run ```pip install .``` to install the package
 - You can see an example of how to use it in the [example](experiments/example.py).
 - To run the main experiments you need another packages installed using :
-  - ```pip install .[pydl85dep]```
   - ```pip install .[experiments]```
 
 - Open a terminal in the experiments folder and run the file you want.

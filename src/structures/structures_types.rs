@@ -3,6 +3,7 @@ pub type Depth = usize;
 pub type Attribute = usize;
 pub type Item = (Attribute, usize);
 pub type Position = Vec<Item>;
+pub static MAX_INT: usize = <usize>::MAX;
 
 // Horizontal data structure type
 pub type HorizontalData = Vec<Vec<Vec<usize>>>;
@@ -23,7 +24,8 @@ pub struct BitsetStructData {
 pub type BitsetStackState = Vec<Bitset>;
 
 // Tree types
-pub type TreeIndex = usize;
+pub type TreeIndex = usize; // TODO: Merge both indexes
+pub type CacheIndex = usize;
 
 // Double Pointer Structure
 

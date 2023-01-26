@@ -88,6 +88,10 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
         support
     }
 
+    fn get_support(&self) -> Support {
+        self.support
+    }
+
     fn push(&mut self, item: Item) -> Support {
         self.position.push(item);
         self.pushing(item);

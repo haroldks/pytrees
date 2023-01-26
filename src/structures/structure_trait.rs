@@ -7,6 +7,7 @@ pub trait Structure {
     fn label_support(&self, label: usize) -> Support;
     fn labels_support(&self) -> Vec<Support>;
     fn support(&mut self) -> Support;
+    fn get_support(&self) -> Support;
     fn push(&mut self, item: Item) -> Support;
     fn backtrack(&mut self);
     fn temp_push(&mut self, item: Item) -> Support;

@@ -1,13 +1,20 @@
-use crate::structures::binary_tree::Tree;
 use crate::structures::structures_types::{Attribute, CacheIndex, Depth, Item, MAX_INT};
-use ndarray::s;
 use nohash_hasher::BuildNoHashHasher;
-use std::collections::HashMap;
-use std::slice::Iter;
+use std::collections::{BTreeSet, HashMap};
 
-trait DataTrait {
+pub trait DataTrait {
     fn new() -> Self;
     fn create_on_item(item: &Item) -> Self;
+    fn get_node_error(&self) -> usize;
+    fn get_leaf_error(&self) -> usize;
+    fn set_node_error(&mut self, error: usize);
+    fn set_leaf_error(&mut self, error: usize);
+    fn set_test(&mut self, test: Attribute);
+    fn set_class(&mut self, class: usize);
+    fn get_lower_bound(&self) -> usize;
+    fn set_lower_bound(&mut self, lower_bound: usize);
+    fn get_test(&self) -> Attribute;
+    fn set_as_leaf(&mut self);
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -48,10 +55,51 @@ impl DataTrait for Data {
         data.test = item.0;
         data
     }
+
+    fn get_node_error(&self) -> usize {
+        self.error
+    }
+
+    fn get_leaf_error(&self) -> usize {
+        self.error_as_leaf
+    }
+
+    fn set_node_error(&mut self, error: usize) {
+        self.error = error;
+    }
+
+    fn set_leaf_error(&mut self, error: usize) {
+        self.error_as_leaf = error;
+    }
+
+    fn set_test(&mut self, test: Attribute) {
+        self.test = test;
+    }
+
+    fn set_class(&mut self, class: usize) {
+        self.out = class;
+    }
+
+    fn get_lower_bound(&self) -> usize {
+        self.lower_bound
+    }
+
+    fn set_lower_bound(&mut self, lower_bound: usize) {
+        self.lower_bound = lower_bound;
+    }
+
+    fn get_test(&self) -> Attribute {
+        self.test
+    }
+
+    fn set_as_leaf(&mut self) {
+        self.error = self.error_as_leaf;
+        self.is_leaf = true;
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
-struct TrieNode<T> {
+pub struct TrieNode<T> {
     pub item: Item,
     pub value: T,
     pub index: CacheIndex,
@@ -118,7 +166,7 @@ impl<'a, It> Iterator for ChildrenIter<'a, It> {
 
 // End: Iterator On Node Children
 
-struct Trie<T> {
+pub struct Trie<T> {
     cache: Vec<TrieNode<T>>,
     children: HashMap<usize, Vec<usize>, BuildNoHashHasher<usize>>,
 }
@@ -195,7 +243,7 @@ impl<T: DataTrait> Trie<T> {
         // TODO: Useless ?
         if self.children.contains_key(&node_index) {
             if let Some(node_children) = self.children.get(&node_index) {
-                return node_children.len() > 0;
+                return !node_children.is_empty();
             }
         }
         false
@@ -209,18 +257,21 @@ impl<T: DataTrait> Trie<T> {
     }
 
     // Start: Cache Exploration based on Itemset
-
-    pub fn find(&self, itemset: &[Item]) -> Option<CacheIndex> {
+    // TODO : Check if it is possible to use a generic iterator
+    pub fn find<'a, I: Iterator<Item = &'a (usize, usize)>>(
+        &self,
+        itemset: I,
+    ) -> Option<CacheIndex> {
         let mut index = self.get_root_index();
-        for item in itemset.iter() {
-            let mut children = self.children(index);
+        for item in itemset {
+            let children = self.children(index);
             match children {
                 None => {
                     return None;
                 }
                 Some(iterator) => {
                     let mut found = false;
-                    for child in iterator.into_iter() {
+                    for child in iterator {
                         if child.item == *item {
                             index = child.index;
                             found = true;
@@ -236,17 +287,22 @@ impl<T: DataTrait> Trie<T> {
         Some(index)
     }
 
-    pub fn find_or_create(&mut self, itemset: &[Item]) -> CacheIndex {
+    pub fn find_or_create<'a, I: Iterator<Item = &'a (usize, usize)>>(
+        &mut self,
+        itemset: I,
+    ) -> (bool, CacheIndex) {
         let mut index = self.get_root_index();
-        for item in itemset.iter() {
-            let mut children = self.children(index);
+        let mut new = false;
+        for item in itemset {
+            let children = self.children(index);
             match children {
                 None => {
+                    new = true;
                     index = self.create_cache_entry(index, item);
                 }
                 Some(iterator) => {
                     let mut found = false;
-                    for child in iterator.into_iter() {
+                    for child in iterator {
                         if child.item == *item {
                             index = child.index;
                             found = true;
@@ -254,23 +310,24 @@ impl<T: DataTrait> Trie<T> {
                         }
                     }
                     if !found {
+                        new = true;
                         // TODO : Check if possible to not do this
                         index = self.create_cache_entry(index, item);
                     }
                 }
             }
         }
-        index
+        (new, index)
     }
 
     fn create_cache_entry(&mut self, parent: CacheIndex, item: &Item) -> CacheIndex {
-        let mut data = T::create_on_item(item);
+        let data = T::create_on_item(item);
         let mut node = TrieNode::new(data);
         node.item = *item;
         self.add_node(parent, node)
     }
 
-    pub fn update(&mut self, itemset: &[Item], data: T) {
+    pub fn update<'a, I: Iterator<Item = &'a (usize, usize)>>(&mut self, itemset: I, data: T) {
         let index = self.find(itemset);
         if let Some(node_index) = index {
             if let Some(node) = self.get_node_mut(node_index) {
@@ -279,7 +336,7 @@ impl<T: DataTrait> Trie<T> {
         }
     }
 
-    // Start: Cache Exploration based on Itemset
+    // End: Cache Exploration based on Itemset
 }
 
 #[cfg(test)]
@@ -305,7 +362,8 @@ mod trie_test {
         if let Some(list) = child_iterator {
             assert_eq!(list.limit, 2);
         }
-        let index = cache.find_or_create(&[(0, 0), (1, 1), (2, 0)]);
+        let a = [(0, 0), (1, 1), (2, 0)].iter();
+        let index = cache.find_or_create(a);
         // println!("{:?}", index);
 
         let data = Data {
@@ -318,14 +376,14 @@ mod trie_test {
             is_leaf: false,
             metric: None,
         };
-
-        cache.update(&[(0, 0), (1, 1), (2, 0)], data);
+        let a = [(0, 0), (1, 1), (2, 0)].iter();
+        cache.update(a, data);
 
         //
         // let index = cache.find(&[(0, 0),(1, 1)]);
         // println!("{:?}", index);
         // let index = cache.find(&[(1, 1)]);
         // println!("{:?}", index);
-        // println!("{:?}", cache.get_node(5));
+        println!("{:?}", cache.get_node(0));
     }
 }

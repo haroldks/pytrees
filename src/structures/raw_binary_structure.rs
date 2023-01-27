@@ -1,5 +1,7 @@
-use crate::structures::structures_types::{Item, Position};
-use crate::{BinaryDataset, Dataset, Structure, Support};
+use crate::dataset::binary_dataset::BinaryDataset;
+use crate::dataset::data_trait::Dataset;
+use crate::structures::structure_trait::Structure;
+use crate::structures::structures_types::{Item, Position, Support};
 
 #[derive(Clone)]
 pub struct RawBinaryStructure<'data> {

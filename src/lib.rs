@@ -24,7 +24,6 @@ extern crate core;
 pub mod algorithms;
 pub mod dataset;
 mod heuristics;
-mod main;
 mod post_process;
 pub mod structures;
 

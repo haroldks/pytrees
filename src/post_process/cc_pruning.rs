@@ -1,6 +1,8 @@
-use crate::algorithms::algorithm_trait::Basic;
+use crate::algorithms::algorithm_trait::{Algorithm, Basic};
+use crate::algorithms::murtree::MurTree;
+use crate::structures::binary_tree::{NodeData, Tree};
+use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::TreeIndex;
-use crate::{Algorithm, MurTree, NodeData, Structure, Tree};
 use std::slice::Iter;
 
 pub struct CostComplexityPruning {

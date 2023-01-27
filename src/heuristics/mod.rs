@@ -22,7 +22,6 @@ pub struct GiniIndex;
 impl Heuristic for GiniIndex {
     fn compute(&self, structure: &mut DataStructure, candidates: &mut Vec<Attribute>) {
         let root_classes_support = structure.labels_support();
-        // let parent_gini = Self::compute_gini(&root_classes_support);
         let mut candidates_sorted = vec![];
         for attribute in candidates.iter() {
             let gini = Self::gini_index(*attribute, structure, &root_classes_support);

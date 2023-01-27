@@ -34,18 +34,13 @@ impl CostComplexityPruning {
         let mut final_alphas = vec![];
         while tree.actual_len() > 3 {
             let (diff_trees, sub_trees) = Self::get_diff_subtrees(tree, structure);
-            //sub_trees[sub_trees.len() - 2].print();
             let infos = CostComplexityPruning::get_sub_trees_infos(&sub_trees);
-            //println!("Infos {:?}", infos);
-            //println!("Infos {:?}", Self::get_tree_error(&tree));
-
             let alphas = Self::get_alphas(Self::get_tree_error(tree), &infos);
-            //println!("Alphas {:?}", alphas);
             let min_alpha = *alphas
                 .iter()
                 .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
                 .unwrap();
-            //println!("Min Alphas {:?}", min_alpha);
+
             final_trees.push(diff_trees[min_alpha.0].clone());
             final_alphas.push(min_alpha.1);
             *tree = diff_trees[min_alpha.0].clone();
@@ -265,19 +260,10 @@ mod cost_complexity_pruning {
         let mut structure = BitsetStructure::new(&bitset_data);
 
         let mut tree = LGDT::fit(&mut structure, 1, 10, MurTree::fit);
-        //println!("Alpha");
-        // tree.print();
+
         structure.reset();
         let (diff_trees, subtrees) =
             CostComplexityPruning::get_diff_subtrees(&tree, &mut structure);
-        // for mut sub_tree in &trees {
-        //     sub_tree.print();
-        //     println!();
-        //     println!();
-        //     println!();
-        //     println!();
-        //     println!();
-        // }
 
         let infos = CostComplexityPruning::get_sub_trees_infos(&subtrees);
         let error = LGDT::get_tree_error(&tree);

@@ -145,8 +145,6 @@ where
 
         // TODO: Check Lower bound constraints
 
-        // TODO: Depth 2 specialized case
-
         if self.constraints.max_depth - depth <= 2 {
             match self.constraints.specialization {
                 Specialization::Murtree => {
@@ -194,7 +192,6 @@ where
 
             // If the error is too high, we don't need to explore the right part of the node
             if left_error >= child_upper_bound {
-                // println!("should stop here and child was {:?}", (*child, 0));
                 continue;
             }
 
@@ -307,7 +304,6 @@ where
     ) -> usize {
         let mut tree = LGDT::fit(structure, self.constraints.min_sup, 2, MurTree::fit);
         let error = LGDT::get_tree_error(&tree);
-        // tree.print();
         self.stitch_to_cache(index, &tree, tree.get_root_index(), itemset);
         error
     }
@@ -321,15 +317,9 @@ where
     ) {
         if let Some(source_root) = tree.get_node(source_index) {
             if let Some(cache_node) = self.cache.get_node_mut(cache_index) {
-                // println!("Before {:?}", cache_node);
-                // if source_root.value.error == <usize>::MAX {
-                //     println!("Something goes wrong");
-                //     tree.print();
-                // }
                 cache_node.value.set_node_error(source_root.value.error);
                 cache_node.value.set_leaf_error(source_root.value.error);
-                // println!("After {:?}", cache_node);
-                // println!("{:?}", source_root);
+
                 if source_root.left == source_root.right {
                     // Case when the rode is a leaf
                     cache_node.value.set_as_leaf();
@@ -373,8 +363,6 @@ where
         let mut tree = Tree::new();
         let mut path = BTreeSet::new();
 
-        // println!("{:?}", self.cache);
-
         // Creating root node
         if let Some(cache_node) = self.cache.get_node(self.cache.get_root_index()) {
             let node_data = self.create_node_data(
@@ -411,17 +399,9 @@ where
         for i in 0..2 {
             // Creating children
             path.insert((attribute, i));
-            // println!("path {:?}", path);
-            // println!("path {:?}", self.cache.find(path.iter()));
 
             if let Some(cache_node_index) = self.cache.find(path.iter()) {
                 if let Some(cache_node) = self.cache.get_node(cache_node_index) {
-                    // println!("{:?}", cache_node.value.get_test());
-                    // println!("{:?}", cache_node.item);
-
-                    // println!("{:?}", cache_node);
-                    // println!("{:?}", cache_node.value.get_node_error());
-                    // println!("{:?}", cache_node.value.is_leaf());
                     let node_data = self.create_node_data(
                         cache_node.value.get_test(),
                         cache_node.value.get_node_error(),
@@ -492,10 +472,7 @@ mod dl85_test {
             heuristic.as_mut(),
         );
         algo.fit(&mut structure);
-        //
-        // if let Some(root) = algo.cache.get_node(algo.cache.get_root_index()) {
-        //     println!("Root: {:?}", root);
-        // }
+
         println!("Statistics: {:?}", algo.statistics);
     }
 }

@@ -163,22 +163,6 @@ impl<'a, It> Iterator for ChildrenIter<'a, It> {
     }
 }
 
-// TODO: Maybe useless
-// impl <'a, It,> IntoIterator for ChildrenIter<'a, It> {
-//     type Item = &'a TrieNode<It>;
-//     type IntoIter = ChildrenIter<'a, It>;
-//
-//     fn into_iter(self) -> ChildrenIter<'a, It> {
-//       ChildrenIter {
-//           cache: self.cache,
-//           to_explore: self.to_explore,
-//           count: self.count,
-//           limit: self.limit,
-//       }
-//     }
-// }
-// TODO: End Maybe useless
-
 // End: Iterator On Node Children
 #[derive(Debug)]
 pub struct Trie<T> {
@@ -248,21 +232,6 @@ impl<T: DataTrait> Trie<T> {
     fn children(&self, index: CacheIndex) -> Option<ChildrenIter<T>> {
         let node_children = self.children.get(&index);
         node_children.map(|children| ChildrenIter::new(self, children))
-        // let iterator = match node_children {
-        //     None => None,
-        //     Some(children) => Some(ChildrenIter::new(self, children)),
-        // };
-        // iterator
-    }
-
-    fn has_children(&self, node_index: CacheIndex) -> bool {
-        // TODO: Useless ?
-        if self.children.contains_key(&node_index) {
-            if let Some(node_children) = self.children.get(&node_index) {
-                return !node_children.is_empty();
-            }
-        }
-        false
     }
 
     fn add_child(&mut self, parent: CacheIndex, child_index: CacheIndex) {
@@ -273,7 +242,6 @@ impl<T: DataTrait> Trie<T> {
     }
 
     // Start: Cache Exploration based on Itemset
-    // TODO : Check if it is possible to use a generic iterator
     pub fn find<'a, I: Iterator<Item = &'a (usize, usize)>>(
         &self,
         itemset: I,
@@ -380,7 +348,6 @@ mod trie_test {
         }
         let a = [(0, 0), (1, 1), (2, 0)].iter();
         let index = cache.find_or_create(a);
-        // println!("{:?}", index);
 
         let data = Data {
             test: 0,
@@ -395,11 +362,6 @@ mod trie_test {
         let a = [(0, 0), (1, 1), (2, 0)].iter();
         cache.update(a, data);
 
-        //
-        // let index = cache.find(&[(0, 0),(1, 1)]);
-        // println!("{:?}", index);
-        // let index = cache.find(&[(1, 1)]);
-        // println!("{:?}", index);
         println!("{:?}", cache.get_node(0));
     }
 }

@@ -1,40 +1,16 @@
-use crate::algorithms::dl85_utils::StopConditions;
+use crate::algorithms::algorithm_trait::{Algorithm, Basic};
+use crate::algorithms::dl85_utils::stop_conditions::StopConditions;
+use crate::algorithms::dl85_utils::structs_enums::{Constraints, Statistics};
+use crate::algorithms::lgdt::LGDT;
+use crate::algorithms::murtree::MurTree;
 use crate::heuristics::Heuristic;
-use crate::structures::caching::trie::{Data, DataTrait, Trie, TrieNode};
+use crate::structures::binary_tree::{NodeData, Tree};
+use crate::structures::caching::trie::{DataTrait, Trie, TrieNode};
 use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, CacheIndex, Depth, Item, Support};
 use std::collections::BTreeSet;
-
-// TODO: Not for here
-struct Constraints {
-    pub max_depth: Depth,
-    pub min_sup: Support,
-    pub max_error: usize,
-    pub max_time: usize,
-    pub one_time_sort: bool,
-}
-
-// TODO: Not for here
-enum SortHeuristic {
-    InformationGain,
-    InformationGainRatio,
-    GiniIndex,
-    NoSortHeuristic,
-}
-
-// TODO: Not for here
-enum LowerBoundHeuristic {
-    SimilarityLowerBound,
-    SimpleLowerBound,
-    NoLowerBound,
-}
-
-enum Specialization {
-    NoSpecialization,
-    SpecializationMurtree,
-    SpecializationInfogain,
-}
+use std::time::{Duration, Instant};
 
 // TODO : Is not working for generic types because of the trait bounds and the use of external methods
 
@@ -47,6 +23,8 @@ where
     heuristic: &'heur mut H,
     cache: Trie<T>,
     stop_conditions: StopConditions<T>,
+    statistics: Statistics,
+    run_time: Instant,
 }
 
 impl<'heur, H, T> DL85<'heur, H, T>
@@ -62,17 +40,25 @@ where
         one_time_sort: bool,
         heuristic: &'heur mut H,
     ) -> Self {
+        let constaints = Constraints {
+            max_depth,
+            min_sup,
+            max_error,
+            max_time,
+            one_time_sort,
+        };
         Self {
-            constraints: Constraints {
-                max_depth,
-                min_sup,
-                max_error,
-                max_time,
-                one_time_sort,
-            },
+            constraints: constaints,
             heuristic,
             cache: Trie::new(),
             stop_conditions: StopConditions::default(),
+            statistics: Statistics {
+                constraints: constaints,
+                cache_size: 0,
+                tree_error: 0,
+                duration: Default::default(),
+            },
+            run_time: Instant::now(),
         }
     }
 
@@ -97,7 +83,7 @@ where
         let root_index = self.cache.get_root_index();
 
         let mut itemset = BTreeSet::new();
-
+        self.run_time = Instant::now();
         self.recursion(
             structure,
             0,
@@ -130,6 +116,8 @@ where
                 self.constraints.min_sup,
                 depth,
                 self.constraints.max_depth,
+                self.run_time.elapsed(),
+                self.constraints.max_time,
                 child_upper_bound,
             ) {
                 return node.value.get_node_error();
@@ -139,6 +127,14 @@ where
         // TODO: Check Lower bound constraints
 
         // TODO: Depth 2 specialized case
+
+        if self.constraints.max_depth - depth <= 2 {
+            // println!("Specialized case");
+            // println!("Itemset before: {:?}", itemset);
+            let error = self.run_specialized_algorithm(structure, parent_index, itemset);
+            // println!("Itemset after: {:?}", itemset);
+            return error;
+        }
 
         // Explore the children of the node
 
@@ -181,7 +177,7 @@ where
 
             // If the error is too high, we don't need to explore the right part of the node
             if left_error >= child_upper_bound {
-                println!("should stop here and child was {:?}", (*child, 0));
+                // println!("should stop here and child was {:?}", (*child, 0));
                 continue;
             }
 
@@ -285,6 +281,60 @@ where
         let error = total - max_value;
         (error, max_idx)
     }
+
+    fn run_specialized_algorithm(
+        &mut self,
+        structure: &mut RSparseBitsetStructure,
+        index: CacheIndex,
+        itemset: &mut BTreeSet<Item>,
+    ) -> usize {
+        let mut tree = LGDT::fit(structure, self.constraints.min_sup, 2, MurTree::fit);
+        let error = LGDT::get_tree_error(&tree);
+        // tree.print();
+        self.stitch_to_cache(index, &tree, tree.get_root_index(), itemset);
+        error
+    }
+
+    fn stitch_to_cache(
+        &mut self,
+        cache_index: CacheIndex,
+        tree: &Tree<NodeData>,
+        source_index: usize,
+        itemset: &mut BTreeSet<Item>,
+    ) {
+        if let Some(source_root) = tree.get_node(source_index) {
+            if let Some(cache_node) = self.cache.get_node_mut(cache_index) {
+                cache_node.value.set_node_error(source_root.value.error);
+                if source_root.left == source_root.right {
+                    // Case when the rode is a leaf
+                    cache_node.value.set_as_leaf();
+                    cache_node
+                        .value
+                        .set_class(source_root.value.out.unwrap_or(<usize>::MAX));
+                } else {
+                    cache_node
+                        .value
+                        .set_test(source_root.value.test.unwrap_or(Attribute::MAX));
+                }
+            }
+
+            let source_left_index = source_root.left;
+            if source_left_index > 0 {
+                itemset.insert((source_root.value.test.unwrap_or(Attribute::MAX), 0));
+                let (_, left_index) = self.cache.find_or_create(itemset.iter());
+                self.stitch_to_cache(left_index, tree, source_left_index, itemset);
+                itemset.remove(&(source_root.value.test.unwrap_or(Attribute::MAX), 0));
+            }
+
+            let source_right_index = source_root.right;
+            if source_right_index > 0 {
+                itemset.insert((source_root.value.test.unwrap_or(Attribute::MAX), 1));
+                let (_, right_index) = self.cache.find_or_create(itemset.iter());
+                self.stitch_to_cache(right_index, tree, source_right_index, itemset);
+                itemset.remove(&(source_root.value.test.unwrap_or(Attribute::MAX), 1));
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -306,7 +356,7 @@ mod dl85_test {
         let mut heuristic: Box<dyn Heuristic> = Box::new(NoHeuristic::default());
 
         let mut algo: DL85<'_, _, Data> =
-            DL85::new(150, 3, <usize>::MAX, 0, false, heuristic.as_mut());
+            DL85::new(1, 5, <usize>::MAX, 5, false, heuristic.as_mut());
         algo.fit(&mut structure);
 
         if let Some(root) = algo.cache.get_node(algo.cache.get_root_index()) {

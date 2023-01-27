@@ -31,13 +31,13 @@ impl CostComplexityPruning {
         let mut final_trees = vec![];
         let mut final_alphas = vec![];
         while tree.actual_len() > 3 {
-            let (diff_trees, sub_trees) = Self::get_diff_subtrees(&tree, structure);
+            let (diff_trees, sub_trees) = Self::get_diff_subtrees(tree, structure);
             //sub_trees[sub_trees.len() - 2].print();
             let infos = CostComplexityPruning::get_sub_trees_infos(&sub_trees);
             //println!("Infos {:?}", infos);
             //println!("Infos {:?}", Self::get_tree_error(&tree));
 
-            let alphas = Self::get_alphas(Self::get_tree_error(&tree), &infos);
+            let alphas = Self::get_alphas(Self::get_tree_error(tree), &infos);
             //println!("Alphas {:?}", alphas);
             let min_alpha = *alphas
                 .iter()
@@ -135,7 +135,7 @@ impl CostComplexityPruning {
         node_tree
     }
 
-    fn get_sub_trees_infos(trees: &Vec<Tree<NodeData>>) -> Vec<(usize, usize)> {
+    fn get_sub_trees_infos(trees: &[Tree<NodeData>]) -> Vec<(usize, usize)> {
         trees
             .iter()
             .map(|tree| {
@@ -147,11 +147,11 @@ impl CostComplexityPruning {
             .collect::<Vec<(usize, usize)>>()
     }
 
-    fn get_alphas(tree_error: usize, infos: &Vec<(usize, usize)>) -> Vec<(usize, f64)> {
+    fn get_alphas(tree_error: usize, infos: &[(usize, usize)]) -> Vec<(usize, f64)> {
         infos
             .iter()
             .enumerate()
-            .map((|(i, (error, size))| (i, (tree_error - error) as f64 / (size - 1) as f64)))
+            .map(|(i, (error, size))| (i, (tree_error - error) as f64 / (size - 1) as f64))
             .collect::<Vec<(usize, f64)>>()
     }
 
@@ -205,7 +205,7 @@ impl CostComplexityPruning {
     }
 
     fn get_leaves_nodes_count(tree: &Tree<NodeData>) -> usize {
-        Self::get_tree_leaves_indexes(&tree).len()
+        Self::get_tree_leaves_indexes(tree).len()
     }
 
     fn get_internal_nodes(tree: &Tree<NodeData>) -> Vec<TreeIndex> {

@@ -14,6 +14,7 @@ pub trait DataTrait {
     fn get_lower_bound(&self) -> usize;
     fn set_lower_bound(&mut self, lower_bound: usize);
     fn get_test(&self) -> Attribute;
+    fn to_leaf(&mut self);
     fn set_as_leaf(&mut self);
 }
 
@@ -90,6 +91,10 @@ impl DataTrait for Data {
 
     fn get_test(&self) -> Attribute {
         self.test
+    }
+
+    fn to_leaf(&mut self) {
+        self.is_leaf = true;
     }
 
     fn set_as_leaf(&mut self) {
@@ -171,11 +176,11 @@ pub struct Trie<T> {
     children: HashMap<usize, Vec<usize>, BuildNoHashHasher<usize>>,
 }
 
-// impl<T: Da> Default for Trie<T> {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
+impl<T: DataTrait> Default for Trie<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<T: DataTrait> Trie<T> {
     pub fn new() -> Self {
@@ -232,11 +237,12 @@ impl<T: DataTrait> Trie<T> {
     // NodeIndex : Get Iterator
     fn children(&self, index: CacheIndex) -> Option<ChildrenIter<T>> {
         let node_children = self.children.get(&index);
-        let iterator = match node_children {
-            None => None,
-            Some(children) => Some(ChildrenIter::new(self, children)),
-        };
-        iterator
+        node_children.map(|children| ChildrenIter::new(self, children))
+        // let iterator = match node_children {
+        //     None => None,
+        //     Some(children) => Some(ChildrenIter::new(self, children)),
+        // };
+        // iterator
     }
 
     fn has_children(&self, node_index: CacheIndex) -> bool {
@@ -253,7 +259,7 @@ impl<T: DataTrait> Trie<T> {
         self.children
             .entry(parent)
             .and_modify(|node_children| node_children.push(child_index))
-            .or_insert(vec![child_index]);
+            .or_insert_with(|| vec![child_index]);
     }
 
     // Start: Cache Exploration based on Itemset

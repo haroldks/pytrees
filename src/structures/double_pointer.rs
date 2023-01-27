@@ -51,7 +51,7 @@ impl<'data> Structure for DoublePointerStructure<'data> {
             if let Some(last_position) = self.position.last() {
                 let part_idx = last_position.1;
                 if let Some(part) = self.state.last() {
-                    return *(&part[part_idx].size());
+                    return part[part_idx].size();
                 }
             }
         }
@@ -125,7 +125,7 @@ impl<'data> DoublePointerStructure<'data> {
         }
 
         Self {
-            input: &inputs,
+            input: inputs,
             elements: (0..inputs.inputs.len()).collect::<Vec<usize>>(),
             support: inputs.inputs.len(),
             num_labels: inputs.num_labels,

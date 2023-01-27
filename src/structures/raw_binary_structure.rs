@@ -25,11 +25,7 @@ impl<'data> Structure for RawBinaryStructure<'data> {
         if label < self.num_labels {
             let train = self.input.get_train();
             if let Some(state) = self.get_last_state() {
-                let out: Vec<&usize> = state
-                    .into_iter()
-                    .filter(|x| *(&train.0[**x]) == label)
-                    .collect();
-                support = out.len();
+                support = state.iter().filter(|x| train.0[**x] == label).count();
             }
         }
         support
@@ -114,7 +110,7 @@ impl<'data> RawBinaryStructure<'data> {
         if let Some(last) = self.get_last_state() {
             let inputs = &self.input.get_train().1;
             for tid in last {
-                if *(&inputs[*tid][item.0]) == item.1 {
+                if inputs[*tid][item.0] == item.1 {
                     new_state.push(*tid);
                 }
             }

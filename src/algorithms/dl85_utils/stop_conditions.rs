@@ -28,8 +28,8 @@ where
         self.time_limit_reached(current_time, max_time, upper_bound, node)
             || self.max_depth_reached(current_depth, max_depth, upper_bound, node)
             || self.not_enough_support(support, min_sup, upper_bound, node)
-            || self.pure_node(upper_bound, node)
             || self.lower_bound_constrained(upper_bound, node)
+            || self.pure_node(upper_bound, node)
     }
 
     fn time_limit_reached(

@@ -11,10 +11,12 @@ pub trait DataTrait {
     fn set_leaf_error(&mut self, error: usize);
     fn set_test(&mut self, test: Attribute);
     fn set_class(&mut self, class: usize);
+    fn get_class(&self) -> usize;
     fn get_lower_bound(&self) -> usize;
     fn set_lower_bound(&mut self, lower_bound: usize);
     fn get_test(&self) -> Attribute;
     fn to_leaf(&mut self);
+    fn is_leaf(&self) -> bool;
     fn set_as_leaf(&mut self);
 }
 
@@ -81,6 +83,10 @@ impl DataTrait for Data {
         self.out = class;
     }
 
+    fn get_class(&self) -> usize {
+        self.out
+    }
+
     fn get_lower_bound(&self) -> usize {
         self.lower_bound
     }
@@ -95,6 +101,10 @@ impl DataTrait for Data {
 
     fn to_leaf(&mut self) {
         self.is_leaf = true;
+    }
+
+    fn is_leaf(&self) -> bool {
+        self.is_leaf
     }
 
     fn set_as_leaf(&mut self) {
@@ -170,7 +180,7 @@ impl<'a, It> Iterator for ChildrenIter<'a, It> {
 // TODO: End Maybe useless
 
 // End: Iterator On Node Children
-
+#[derive(Debug)]
 pub struct Trie<T> {
     cache: Vec<TrieNode<T>>,
     children: HashMap<usize, Vec<usize>, BuildNoHashHasher<usize>>,

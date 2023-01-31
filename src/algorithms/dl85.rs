@@ -638,7 +638,5 @@ mod dl85_test {
             heuristic.as_mut(),
         );
         algo.fit(&mut structure);
-
-        println!("Statistics: {:?}", algo.statistics);
     }
 }

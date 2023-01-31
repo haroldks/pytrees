@@ -123,7 +123,5 @@ mod idk_test {
         let mut structure = RSparseBitsetStructure::new(&bitset_data);
         let a = IDK::fit(&mut structure, 1, InfoGain::fit);
         let error = IDK::get_tree_error(&a);
-        a.print();
-        println!("Tree error :  {}", error);
     }
 }

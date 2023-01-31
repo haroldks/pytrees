@@ -358,7 +358,5 @@ mod trie_test {
         };
         let a = [(0, 0), (1, 1), (2, 0)].iter();
         cache.update(a, data);
-
-        println!("{:?}", cache.get_node(0));
     }
 }

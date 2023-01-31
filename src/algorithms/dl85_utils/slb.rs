@@ -55,9 +55,7 @@ where
 
     fn set_empty(&mut self, data: &T, structure: &mut RSparseBitsetStructure) -> bool {
         if self.first.is_empty() {
-            // println!("First is Empty");
             self.first.update(structure, data);
-            // println!("First is now {:?}", self.first);
             return true;
         } else if self.second.is_empty() {
             self.second.update(structure, data);

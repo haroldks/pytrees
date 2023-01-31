@@ -131,7 +131,6 @@ mod test_raw_binary_structure {
         let dataset = BinaryDataset::load("test_data/small_.txt", false, 0.0);
         let mut raw_structure = RawBinaryStructure::new(&dataset);
         let support = raw_structure.support();
-        println!("Support : {}", support);
     }
 
     #[test]

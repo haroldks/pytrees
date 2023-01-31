@@ -180,7 +180,6 @@ mod test_binary_dataset {
         let rows = data.1;
         assert_eq!(data.0.len(), dataset.size() / 2);
         let content = vec![vec![1, 0, 1], vec![0, 1, 1]];
-        println!("{:?}", rows);
         assert_eq!(rows.iter().eq(content.iter()), true);
     }
 

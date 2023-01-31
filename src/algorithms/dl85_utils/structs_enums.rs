@@ -11,6 +11,7 @@ pub(crate) struct Constraints {
     pub max_time: usize,
     pub one_time_sort: bool,
     pub specialization: Specialization,
+    pub lower_bound: LowerBoundHeuristic,
 }
 
 #[derive(Debug, Clone)]
@@ -35,15 +36,25 @@ enum SortHeuristic {
     None,
 }
 
-// TODO: Not for here
-enum LowerBoundHeuristic {
+#[derive(Debug, Clone, Copy)]
+pub enum LowerBoundHeuristic {
     Similarity,
-    Simple,
     None,
 }
 #[derive(Debug, Clone, Copy)]
 pub enum Specialization {
     Murtree,
+    None,
+}
+#[derive(Debug)]
+pub enum ReturnCondition {
+    Done,
+    TimeLimitReached,
+    LowerBoundConstrained,
+    MaxDepthReached,
+    NotEnoughSupport,
+    PureNode,
+    FromSpecializedAlgorithm,
     None,
 }
 

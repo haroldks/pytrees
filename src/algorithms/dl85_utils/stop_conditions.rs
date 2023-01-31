@@ -1,18 +1,20 @@
+use crate::algorithms::dl85_utils::structs_enums::ReturnCondition;
 use crate::structures::caching::trie::{DataTrait, TrieNode};
 use crate::structures::structures_types::{Depth, Support};
+use std::fmt::Debug;
 use std::time::Duration;
 
 #[derive(Default)]
 pub struct StopConditions<T>
 where
-    T: DataTrait + Default,
+    T: DataTrait + Default + Debug,
 {
     _phantom: std::marker::PhantomData<T>,
 }
 
 impl<T> StopConditions<T>
 where
-    T: DataTrait + Default,
+    T: DataTrait + Default + Debug,
 {
     pub(crate) fn check(
         &self,
@@ -24,12 +26,42 @@ where
         current_time: Duration,
         max_time: usize,
         upper_bound: usize,
-    ) -> bool {
-        self.time_limit_reached(current_time, max_time, upper_bound, node)
-            || self.max_depth_reached(current_depth, max_depth, upper_bound, node)
-            || self.not_enough_support(support, min_sup, upper_bound, node)
-            || self.lower_bound_constrained(upper_bound, node)
-            || self.pure_node(upper_bound, node)
+    ) -> (bool, ReturnCondition) {
+        if self.time_limit_reached(current_time, max_time, upper_bound, node) {
+            return (true, ReturnCondition::TimeLimitReached);
+        }
+
+        if self.max_depth_reached(current_depth, max_depth, upper_bound, node) {
+            return (true, ReturnCondition::MaxDepthReached);
+        }
+
+        if self.not_enough_support(support, min_sup, upper_bound, node) {
+            return (true, ReturnCondition::NotEnoughSupport);
+        }
+
+        if self.lower_bound_constrained(upper_bound, node) {
+            return (true, ReturnCondition::LowerBoundConstrained);
+        }
+
+        if self.pure_node(upper_bound, node) {
+            return (true, ReturnCondition::PureNode);
+        }
+        (false, ReturnCondition::None)
+    }
+
+    pub(crate) fn stop_from_lower_bound(
+        &self,
+        node: &mut TrieNode<T>,
+        actual_upper_bound: usize,
+    ) -> (bool, ReturnCondition) {
+        if node.value.get_lower_bound() >= actual_upper_bound {
+            return (true, ReturnCondition::LowerBoundConstrained);
+        }
+        if node.value.get_leaf_error() <= node.value.get_lower_bound() {
+            node.value.set_as_leaf();
+            return (true, ReturnCondition::PureNode);
+        }
+        (false, ReturnCondition::None)
     }
 
     fn time_limit_reached(
@@ -41,8 +73,6 @@ where
     ) -> bool {
         match current_time.as_secs() as usize >= max_time {
             true => {
-                // println!("Time limit reached");
-                node.value.set_lower_bound(actual_upper_bound);
                 node.value.set_as_leaf();
                 true
             }
@@ -51,12 +81,8 @@ where
     }
 
     fn lower_bound_constrained(&self, actual_upper_bound: usize, node: &mut TrieNode<T>) -> bool {
-        match node.value.get_lower_bound() >= actual_upper_bound {
-            true => {
-                // println!("Lower bound constrained")
-                node.value.set_as_leaf();
-                true
-            }
+        match (node.value.get_lower_bound() >= actual_upper_bound) || (actual_upper_bound == 0) {
+            true => true,
             false => false,
         }
     }
@@ -70,8 +96,6 @@ where
     ) -> bool {
         match depth == max_depth {
             true => {
-                // println!("Max depth reached: {}", depth);
-                node.value.set_lower_bound(actual_upper_bound);
                 node.value.set_as_leaf();
                 true
             }
@@ -88,8 +112,6 @@ where
     ) -> bool {
         match support < min_sup * 2 {
             true => {
-                // println!("Not enough support: {}", support);
-                node.value.set_lower_bound(actual_upper_bound);
                 node.value.set_as_leaf();
                 true
             }
@@ -98,10 +120,8 @@ where
     }
 
     fn pure_node(&self, actual_upper_bound: usize, node: &mut TrieNode<T>) -> bool {
-        match node.value.get_leaf_error() == 0 {
+        match node.value.get_leaf_error() <= node.value.get_lower_bound() {
             true => {
-                // println!("Pure node");
-                node.value.set_lower_bound(actual_upper_bound);
                 node.value.set_as_leaf();
                 true
             }

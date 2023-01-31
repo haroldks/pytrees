@@ -16,3 +16,13 @@ An LGDTPredictor class is built around the Rust implementation and is compatible
   - ```pip install .[experiments]```
 
 - Open a terminal in the experiments folder and run the file you want.
+
+### To Do:
+
+- [ ] Add more tests
+- [ ] Add more documentation
+- [ ] Add more experiments
+- [ ] Depth parameter incrementation
+- [ ] Should I save metric field ?
+- [ ] Resize of the cache
+- [ ] Check performance bottleneck

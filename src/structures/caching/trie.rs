@@ -1,4 +1,4 @@
-use crate::structures::structures_types::{Attribute, CacheIndex, Depth, Item, MAX_INT};
+use crate::structures::structures_types::{Attribute, Depth, Index, Item, MAX_INT};
 use nohash_hasher::BuildNoHashHasher;
 use std::collections::{BTreeSet, HashMap};
 
@@ -117,7 +117,7 @@ impl DataTrait for Data {
 pub struct TrieNode<T> {
     pub item: Item,
     pub value: T,
-    pub index: CacheIndex,
+    pub index: Index,
 }
 
 impl<T> TrieNode<T> {
@@ -199,7 +199,7 @@ impl<T: DataTrait> Trie<T> {
 
     // Begin : Index based methods
 
-    pub fn add_node(&mut self, parent: CacheIndex, mut node: TrieNode<T>) -> CacheIndex {
+    pub fn add_node(&mut self, parent: Index, mut node: TrieNode<T>) -> Index {
         node.index = self.cache.len();
         self.cache.push(node);
         let position = self.cache.len() - 1;
@@ -210,31 +210,31 @@ impl<T: DataTrait> Trie<T> {
         position
     }
 
-    pub fn add_root(&mut self, root: TrieNode<T>) -> CacheIndex {
+    pub fn add_root(&mut self, root: TrieNode<T>) -> Index {
         self.add_node(0, root)
     }
 
-    pub fn get_root_index(&self) -> CacheIndex {
+    pub fn get_root_index(&self) -> Index {
         0
     }
 
-    pub fn get_node(&self, index: CacheIndex) -> Option<&TrieNode<T>> {
+    pub fn get_node(&self, index: Index) -> Option<&TrieNode<T>> {
         self.cache.get(index)
     }
 
-    pub fn get_node_mut(&mut self, index: CacheIndex) -> Option<&mut TrieNode<T>> {
+    pub fn get_node_mut(&mut self, index: Index) -> Option<&mut TrieNode<T>> {
         self.cache.get_mut(index)
     }
 
     // End : Index based methods
 
     // NodeIndex : Get Iterator
-    fn children(&self, index: CacheIndex) -> Option<ChildrenIter<T>> {
+    fn children(&self, index: Index) -> Option<ChildrenIter<T>> {
         let node_children = self.children.get(&index);
         node_children.map(|children| ChildrenIter::new(self, children))
     }
 
-    fn add_child(&mut self, parent: CacheIndex, child_index: CacheIndex) {
+    fn add_child(&mut self, parent: Index, child_index: Index) {
         self.children
             .entry(parent)
             .and_modify(|node_children| node_children.push(child_index))
@@ -242,10 +242,7 @@ impl<T: DataTrait> Trie<T> {
     }
 
     // Start: Cache Exploration based on Itemset
-    pub fn find<'a, I: Iterator<Item = &'a (usize, usize)>>(
-        &self,
-        itemset: I,
-    ) -> Option<CacheIndex> {
+    pub fn find<'a, I: Iterator<Item = &'a (usize, usize)>>(&self, itemset: I) -> Option<Index> {
         let mut index = self.get_root_index();
         for item in itemset {
             let children = self.children(index);
@@ -274,7 +271,7 @@ impl<T: DataTrait> Trie<T> {
     pub fn find_or_create<'a, I: Iterator<Item = &'a (usize, usize)>>(
         &mut self,
         itemset: I,
-    ) -> (bool, CacheIndex) {
+    ) -> (bool, Index) {
         let mut index = self.get_root_index();
         let mut new = false;
         for item in itemset {
@@ -304,7 +301,7 @@ impl<T: DataTrait> Trie<T> {
         (new, index)
     }
 
-    fn create_cache_entry(&mut self, parent: CacheIndex, item: &Item) -> CacheIndex {
+    fn create_cache_entry(&mut self, parent: Index, item: &Item) -> Index {
         let data = T::create_on_item(item);
         let mut node = TrieNode::new(data);
         node.item = *item;

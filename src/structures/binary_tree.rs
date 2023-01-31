@@ -1,4 +1,4 @@
-use crate::structures::structures_types::{Attribute, TreeIndex};
+use crate::structures::structures_types::{Attribute, Index};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ impl NodeData {
 #[derive(Copy, Clone, Serialize, Deserialize, Debug)]
 pub struct TreeNode<T> {
     pub value: T,
-    pub(crate) index: TreeIndex,
+    pub(crate) index: Index,
     pub(crate) left: usize,
     pub(crate) right: usize,
 }
@@ -74,7 +74,7 @@ impl<T> Tree<T> {
         self.count_node_recursion(self.get_root_index())
     }
 
-    fn count_node_recursion(&self, node_index: TreeIndex) -> usize {
+    fn count_node_recursion(&self, node_index: Index) -> usize {
         let mut left_index = 0;
         let mut right_index = 0;
         if let Some(node) = self.get_node(node_index) {
@@ -100,10 +100,10 @@ impl<T> Tree<T> {
 
     pub(crate) fn add_node(
         &mut self,
-        parent: TreeIndex,
+        parent: Index,
         is_left: bool,
         mut node: TreeNode<T>,
-    ) -> TreeIndex {
+    ) -> Index {
         node.index = self.tree.len();
         self.tree.push(node);
         let position = self.tree.len() - 1;
@@ -120,26 +120,26 @@ impl<T> Tree<T> {
         position
     }
 
-    pub fn add_root(&mut self, root: TreeNode<T>) -> TreeIndex {
+    pub fn add_root(&mut self, root: TreeNode<T>) -> Index {
         self.add_node(0, false, root)
     }
 
-    pub fn add_left_node(&mut self, parent: TreeIndex, node: TreeNode<T>) -> TreeIndex {
+    pub fn add_left_node(&mut self, parent: Index, node: TreeNode<T>) -> Index {
         self.add_node(parent, true, node)
     }
-    pub fn add_right_node(&mut self, parent: TreeIndex, node: TreeNode<T>) -> TreeIndex {
+    pub fn add_right_node(&mut self, parent: Index, node: TreeNode<T>) -> Index {
         self.add_node(parent, false, node)
     }
 
-    pub fn get_root_index(&self) -> TreeIndex {
+    pub fn get_root_index(&self) -> Index {
         0
     }
 
-    pub fn get_node(&self, index: TreeIndex) -> Option<&TreeNode<T>> {
+    pub fn get_node(&self, index: Index) -> Option<&TreeNode<T>> {
         self.tree.get(index)
     }
 
-    pub fn get_node_mut(&mut self, index: TreeIndex) -> Option<&mut TreeNode<T>> {
+    pub fn get_node_mut(&mut self, index: Index) -> Option<&mut TreeNode<T>> {
         self.tree.get_mut(index)
     }
 

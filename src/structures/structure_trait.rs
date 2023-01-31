@@ -1,7 +1,6 @@
 use crate::structures::structures_types::{Item, Position, Support};
 
 pub trait Structure {
-    // TODO: Add sparsity computation
     fn num_attributes(&self) -> usize;
     fn num_labels(&self) -> usize;
     fn label_support(&self, label: usize) -> Support;

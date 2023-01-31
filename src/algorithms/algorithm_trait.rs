@@ -1,6 +1,6 @@
 use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{Attribute, Depth, Item, Support, TreeIndex};
+use crate::structures::structures_types::{Attribute, Depth, Index, Item, Support};
 
 pub trait Algorithm {
     fn build_depth_one_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
@@ -126,7 +126,7 @@ pub trait Algorithm {
         tree
     }
 
-    fn build_tree_recurse(tree: &mut Tree<NodeData>, parent: TreeIndex, depth: Depth) {
+    fn build_tree_recurse(tree: &mut Tree<NodeData>, parent: Index, depth: Depth) {
         if depth == 0 {
             if let Some(parent_node) = tree.get_node_mut(parent) {
                 parent_node.left = 0;
@@ -182,7 +182,7 @@ pub trait Basic {
         <usize>::MAX
     }
 
-    fn create_child(tree: &mut Tree<NodeData>, parent: TreeIndex, is_left: bool) -> TreeIndex
+    fn create_child(tree: &mut Tree<NodeData>, parent: Index, is_left: bool) -> Index
 where {
         let value = NodeData::new();
         let node = TreeNode::new(value);
@@ -192,7 +192,7 @@ where {
     fn create_leaf<S>(
         tree: &mut Tree<NodeData>,
         structure: &mut S,
-        parent: TreeIndex,
+        parent: Index,
         is_left: bool,
     ) -> usize
     where
@@ -212,9 +212,9 @@ where {
 
     fn move_tree(
         dest_tree: &mut Tree<NodeData>,
-        dest_index: TreeIndex,
+        dest_index: Index,
         source_tree: &Tree<NodeData>,
-        source_index: TreeIndex,
+        source_index: Index,
     ) {
         if let Some(source_node) = source_tree.get_node(source_index) {
             if let Some(root) = dest_tree.get_node_mut(dest_index) {

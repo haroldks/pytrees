@@ -24,8 +24,7 @@ pub struct BitsetStructData {
 pub type BitsetStackState = Vec<Bitset>;
 
 // Tree types
-pub type TreeIndex = usize; // TODO: Merge both indexes
-pub type CacheIndex = usize;
+pub type Index = usize;
 
 // Double Pointer Structure
 

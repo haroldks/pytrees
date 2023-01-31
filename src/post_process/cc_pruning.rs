@@ -2,7 +2,7 @@ use crate::algorithms::algorithm_trait::{Algorithm, Basic};
 use crate::algorithms::murtree::MurTree;
 use crate::structures::binary_tree::{NodeData, Tree};
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::TreeIndex;
+use crate::structures::structures_types::Index;
 use std::slice::Iter;
 
 pub struct CostComplexityPruning {
@@ -63,7 +63,7 @@ impl CostComplexityPruning {
     }
     fn tree_conversion_recursion<S>(
         tree: &Tree<NodeData>,
-        index: TreeIndex,
+        index: Index,
         structure: &mut S,
         trees: &mut Vec<Tree<NodeData>>,
         subtrees: &mut Vec<Tree<NodeData>>,
@@ -114,7 +114,7 @@ impl CostComplexityPruning {
 
     fn convert_node_to_leaf<S>(
         tree: &Tree<NodeData>,
-        node_index: TreeIndex,
+        node_index: Index,
         structure: &mut S,
     ) -> Tree<NodeData>
     where
@@ -152,11 +152,11 @@ impl CostComplexityPruning {
             .collect::<Vec<(usize, f64)>>()
     }
 
-    fn get_tree_leaves_indexes(tree: &Tree<NodeData>) -> Vec<TreeIndex> {
+    fn get_tree_leaves_indexes(tree: &Tree<NodeData>) -> Vec<Index> {
         let mut leaves = vec![];
         recursion(0, tree, &mut leaves);
 
-        fn recursion(node_index: TreeIndex, tree: &Tree<NodeData>, leaves: &mut Vec<TreeIndex>) {
+        fn recursion(node_index: Index, tree: &Tree<NodeData>, leaves: &mut Vec<Index>) {
             if let Some(node) = tree.get_node(node_index) {
                 if node.left == node.right {
                     leaves.push(node_index);
@@ -170,7 +170,7 @@ impl CostComplexityPruning {
     }
 
     fn clean_error(tree: &mut Tree<NodeData>) {
-        fn recursion(parent: TreeIndex, tree: &mut Tree<NodeData>) -> usize {
+        fn recursion(parent: Index, tree: &mut Tree<NodeData>) -> usize {
             if let Some(node) = tree.get_node(parent) {
                 if CostComplexityPruning::is_leaf(node) {
                     return node.value.error;
@@ -205,10 +205,10 @@ impl CostComplexityPruning {
         Self::get_tree_leaves_indexes(tree).len()
     }
 
-    fn get_internal_nodes(tree: &Tree<NodeData>) -> Vec<TreeIndex> {
+    fn get_internal_nodes(tree: &Tree<NodeData>) -> Vec<Index> {
         let mut nodes = vec![];
         recursion(0, tree, &mut nodes);
-        fn recursion(node_index: TreeIndex, tree: &Tree<NodeData>, nodes: &mut Vec<TreeIndex>) {
+        fn recursion(node_index: Index, tree: &Tree<NodeData>, nodes: &mut Vec<Index>) {
             if let Some(node) = tree.get_node(node_index) {
                 if node.left != node.right {
                     nodes.push(node_index);

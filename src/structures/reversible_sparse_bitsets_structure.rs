@@ -1,5 +1,7 @@
+use crate::algorithms::dl85_utils::slb::Similarity;
 use crate::dataset::data_trait::Dataset;
 use crate::structures::bitsets_structure::BitsetStructure;
+use crate::structures::caching::trie::DataTrait;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{
     Bitset, BitsetStackState, BitsetStructData, Item, Position, Support,
@@ -222,6 +224,63 @@ impl<'data> RSparseBitsetStructure<'data> {
             self.limit.push(limit)
         }
     }
+
+    // Start : Methods to evaluate the structure fo similarity lower bound
+
+    pub fn get_last_state_bitset(&self) -> Bitset {
+        let state = &self.state;
+        let mut to_export: Bitset = vec![0; self.inputs.chunks];
+        if let Some(limit) = self.limit.last() {
+            if *limit >= 0 {
+                for i in 0..(*limit + 1) {
+                    let cursor = self.index[i as usize];
+                    if let Some(val) = state[cursor].last() {
+                        to_export[cursor] = *val;
+                    }
+                }
+            }
+        }
+        to_export
+    }
+
+    pub fn get_current_index(&self) -> Vec<usize> {
+        self.index.clone()
+    }
+
+    pub fn get_current_limit(&self) -> isize {
+        self.limit.last().copied().unwrap_or(-1)
+    }
+
+    pub fn difference<T: DataTrait>(&self, similarity: &Similarity<T>, data_in: bool) -> usize {
+        let struc_limit = self.get_current_limit();
+
+        let limit = match data_in {
+            true => struc_limit,
+            false => similarity.limit,
+        };
+
+        let index = match data_in {
+            true => &self.index,
+            false => &similarity.index,
+        };
+        let mut count = 0;
+        if limit >= 0 {
+            for cursor in index.iter().take(limit as usize + 1) {
+                let val = match struc_limit == -1 {
+                    true => 0,
+                    false => *self.state[*cursor].last().unwrap_or(&0),
+                };
+                let diff = match data_in {
+                    true => val & !similarity.state[*cursor],
+                    false => similarity.state[*cursor] & !val,
+                };
+                count += diff.count_ones();
+            }
+            return count as usize;
+        }
+        0
+    }
+    // End : Methods to evaluate the structure fo similarity lower bound
 }
 
 #[cfg(test)]

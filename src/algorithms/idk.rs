@@ -1,7 +1,7 @@
 use crate::algorithms::algorithm_trait::Basic;
 use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{Attribute, Depth, Support, TreeIndex};
+use crate::structures::structures_types::{Attribute, Depth, Index, Support};
 
 pub struct IDK {
     tree: Option<Tree<NodeData>>,
@@ -61,7 +61,7 @@ impl IDK {
     fn build_tree_recurse<S, F>(
         structure: &mut S,
         tree: &mut Tree<NodeData>,
-        index: TreeIndex,
+        index: Index,
         next: Option<Attribute>,
         minsup: Support,
         fit_method: &F,

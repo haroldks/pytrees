@@ -1,9 +1,11 @@
 use crate::structures::structures_types::{Depth, Support};
+use pyo3::{IntoPy, PyObject, Python};
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 // Start: Structures used in the algorithm
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub(crate) struct Constraints {
     pub max_depth: Depth,
     pub min_sup: Support,
@@ -14,39 +16,46 @@ pub(crate) struct Constraints {
     pub lower_bound: LowerBoundHeuristic,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Statistics {
     pub(crate) cache_size: usize,
     pub(crate) tree_error: usize,
     pub(crate) duration: Duration,
     pub(crate) num_attributes: usize,
     pub(crate) num_samples: usize,
-    pub(crate) train_distribution: Vec<usize>,
+    pub(crate) train_distribution: [usize; 2],
     pub(crate) constraints: Constraints,
+}
+
+impl IntoPy<PyObject> for Statistics {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        let json = serde_json::to_string_pretty(&self).unwrap();
+        json.into_py(py)
+    }
 }
 
 // End: Structures used in the algorithm
 
 // Start: Enums used in the algorithm
-#[derive(Debug, Clone, Copy)]
-enum SortHeuristic {
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum SortHeuristic {
     InformationGain,
     InformationGainRatio,
     GiniIndex,
     None,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum LowerBoundHeuristic {
     Similarity,
     None,
 }
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Specialization {
     Murtree,
     None,
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ReturnCondition {
     Done,
     TimeLimitReached,

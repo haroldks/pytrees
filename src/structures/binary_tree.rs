@@ -1,4 +1,5 @@
 use crate::structures::structures_types::{Attribute, Index};
+use pyo3::{IntoPy, PyObject, Python};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -54,6 +55,13 @@ pub struct Tree<T> {
 impl<T> Default for Tree<T> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl IntoPy<PyObject> for Tree<NodeData> {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        let json = serde_json::to_string_pretty(&self).unwrap();
+        json.into_py(py)
     }
 }
 

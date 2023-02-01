@@ -19,7 +19,7 @@ LGDT_IG = {
         min_sup=0,
         max_depth=0,
         data_structure="reversible_sparse_bitset",
-        fit_method="infogain",
+        fit_method="info_gain",
     ),
 }
 
@@ -51,7 +51,7 @@ BAGGED_LDGT_IG = {
             min_sup=0,
             max_depth=0,
             data_structure="reversible_sparse_bitset",
-            fit_method="infogain",
+            fit_method="info_gain",
         ),
         n_estimators=10,
         max_samples=0.6321,
@@ -77,13 +77,13 @@ LGDT_SPARSE = {
 LGDT_BITSET = {
     "name": "lgdt_error_bitset",
     "instance": LGDTClassifier(
-        min_sup=0, max_depth=0, data_structure="bitset", fit_method="murtree"
+        min_sup=0, max_depth=0, data_structure="regular_bitset", fit_method="murtree"
     ),
 }
 
 LGDT_HZ = {
     "name": "lgdt_error_horizontal",
     "instance": LGDTClassifier(
-        min_sup=0, max_depth=0, data_structure="horizontal", fit_method="murtree"
+        min_sup=0, max_depth=0, data_structure="horizontal_data", fit_method="murtree"
     ),
 }

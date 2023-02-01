@@ -20,6 +20,7 @@ An LGDTPredictor class is built around the Rust implementation and is compatible
 ### To Do:
 
 - [ ] Add more tests
+- [ ] Add Logging or verbosity
 - [ ] Add more documentation
 - [ ] Add more experiments
 - [ ] Depth parameter incrementation

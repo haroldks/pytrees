@@ -1,8 +1,8 @@
 [project]
-name = "lgdt_optimizer"
+name = "pytrees_internal"
 version = "0.1.0"
 dependencies = [
-"scikit-learn"
+"scikit-learn",
 ]
 
 

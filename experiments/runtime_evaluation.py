@@ -3,12 +3,12 @@ import shutil
 
 import numpy as np
 
-from pylgdt.experiments.utils.functions import (
+from pytrees.experiments.utils.functions import (
     run_multithread_on_single_test_set,
     run_on_single_test_set,
     get_stats,
 )
-from pylgdt.experiments.utils.models import (
+from pytrees.experiments.utils.models import (
     CART,
     LGDT_BITSET,
     LGDT_SPARSE,

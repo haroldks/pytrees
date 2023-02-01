@@ -1,17 +1,17 @@
 import os
 import shutil
 import numpy as np
-from pylgdt.experiments.synthetic import generate_decision_trees
-from pylgdt.experiments.synthetic import generate_dataset_from_decision_tree
+from pytrees.experiments.synthetic import generate_decision_trees
+from pytrees.experiments.synthetic import generate_dataset_from_decision_tree
 
-from pylgdt.experiments.utils.functions import (
+from pytrees.experiments.utils.functions import (
     run_multithread_on_single_test_set,
     run_on_single_test_set,
     get_stats,
     models_plots,
 )
 
-from pylgdt.experiments.utils.models import LGDT_IG, LGDT_ERROR, CART, DL85
+from pytrees.experiments.utils.models import LGDT_IG, LGDT_ERROR, CART, DL85
 
 USE_FULL_TREES = True
 

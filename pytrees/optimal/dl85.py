@@ -39,11 +39,3 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         )
 
         self.set_classifier(clf)
-
-
-# dataset = np.genfromtxt("../../test_data/anneal.txt", delimiter=" ")
-# X, y = dataset[:, 1:], dataset[:, 0]
-#
-# clf = DL85Classifier(min_sup=2, max_depth=1, specialization="none", lower_bound="none")
-#
-# clf.fit(X, y)

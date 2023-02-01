@@ -65,7 +65,7 @@ where
             statistics: Statistics {
                 num_attributes: 0,
                 num_samples: 0,
-                train_distribution: vec![],
+                train_distribution: [0, 0],
                 constraints: constaints,
                 cache_size: 0,
                 tree_error: 0,
@@ -79,7 +79,8 @@ where
     pub fn fit(&mut self, structure: &mut RSparseBitsetStructure) {
         // Update Statistics structures
         self.statistics.num_attributes = structure.num_attributes();
-        self.statistics.train_distribution = structure.labels_support();
+        let distribution = structure.labels_support();
+        self.statistics.train_distribution = [distribution[0], distribution[1]];
         self.statistics.num_samples = structure.support();
 
         let mut candidates = Vec::new();
@@ -181,7 +182,12 @@ where
         if self.constraints.max_depth - depth <= 2 {
             match self.constraints.specialization {
                 Specialization::Murtree => {
-                    return self.run_specialized_algorithm(structure, parent_index, itemset, depth);
+                    return self.run_specialized_algorithm(
+                        structure,
+                        parent_index,
+                        itemset,
+                        self.constraints.max_depth - depth,
+                    );
                 }
                 Specialization::None => {}
             }

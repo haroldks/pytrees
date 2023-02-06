@@ -26,7 +26,7 @@ pub trait Algorithm {
         S: Structure,
     {
         let num_attributes = structure.num_attributes();
-        let mut candidates = vec![];
+        let mut candidates = Vec::with_capacity(num_attributes);
         for i in 0..num_attributes {
             if structure.temp_push((i, 0)) >= min_sup && structure.temp_push((i, 1)) >= min_sup {
                 candidates.push(i);
@@ -52,9 +52,9 @@ pub trait Algorithm {
             for second in i + 1..size {
                 structure.push((candidates[second], 1));
                 let val = structure.labels_support();
-                structure.backtrack();
                 matrix[i][second] = (val[0], val[1]);
                 matrix[second][i] = (val[0], val[1]);
+                structure.backtrack();
             }
             structure.backtrack();
         }

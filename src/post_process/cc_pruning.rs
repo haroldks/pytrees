@@ -227,12 +227,15 @@ impl CostComplexityPruning {
 
 #[cfg(test)]
 mod cost_complexity_pruning {
-    use crate::algorithms::algorithm_trait::Basic;
+    use crate::algorithms::algorithm_trait::{Algorithm, Basic};
     use crate::post_process::cc_pruning::CostComplexityPruning;
-    use crate::{
-        Algorithm, BinaryDataset, BitsetStructure, Dataset, InfoGain, MurTree, Structure, Tree,
-        LGDT,
-    };
+
+    use crate::algorithms::lgdt::LGDT;
+    use crate::algorithms::murtree::MurTree;
+    use crate::dataset::binary_dataset::BinaryDataset;
+    use crate::dataset::data_trait::Dataset;
+    use crate::structures::bitsets_structure::BitsetStructure;
+    use crate::structures::structure_trait::Structure;
     use rand::Rng;
 
     #[test]

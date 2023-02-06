@@ -179,10 +179,40 @@ impl<T: DataTrait> Default for Trie<T> {
 impl<T: DataTrait> Trie<T> {
     pub fn new() -> Self {
         Self {
-            cache: Vec::new(),
+            cache: Vec::new(), // TODO : Find a better way to set the capacity
             children: Default::default(),
         }
     }
+
+    // Start :Implement a better way to set the capacity
+
+    pub fn with_capacity(features: usize, depth: usize) -> Self {
+        Self {
+            cache: Vec::with_capacity(Self::cache_size(features, depth)),
+            children: HashMap::with_capacity_and_hasher(features, BuildNoHashHasher::default()),
+        }
+    }
+
+    fn factorial(n: u64) -> u64 {
+        (1..=n).product()
+    }
+
+    fn count_combinations(n: u64, r: u64) -> u64 {
+        (n - r + 1..=n).product::<u64>() / Self::factorial(r)
+    }
+
+    fn cache_size(features: usize, depth: usize) -> usize {
+        let mut size = 0;
+        for i in 1..depth {
+            size += Self::count_combinations(features as u64, i as u64) * 2u64.pow(i as u32);
+        }
+        // if size > 20_000_000 {
+        //     return size as usize / 2;
+        // }
+        size as usize
+    }
+
+    // End : Implement a better way to set the capacity
 
     pub fn is_empty(&self) -> bool {
         self.cache.is_empty()

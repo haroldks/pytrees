@@ -120,7 +120,8 @@ where
     }
 
     fn pure_node(&self, actual_upper_bound: usize, node: &mut TrieNode<T>) -> bool {
-        match node.value.get_leaf_error() <= node.value.get_lower_bound() {
+        match node.value.get_leaf_error() == node.value.get_lower_bound() {
+            // TODO : check if this is correct
             true => {
                 node.value.set_as_leaf();
                 true

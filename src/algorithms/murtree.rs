@@ -79,9 +79,20 @@ impl Algorithm for MurTree {
         let matrix = Self::build_depth_two_matrix(structure, &candidates);
 
         let mut tree = Self::empty_tree(2);
-        let classes_support = structure.labels_support();
+        let classes_support = structure
+            .labels_support()
+            .iter()
+            .map(|x| *x)
+            .collect::<Vec<Support>>();
+        let support = structure.get_support();
 
         for (i, first) in candidates.iter().enumerate() {
+            let root_right_support = matrix[i][i].0 + matrix[i][i].1;
+            let root_left_support = support - root_right_support;
+            if root_left_support < min_sup || root_right_support < min_sup {
+                continue;
+            }
+
             let mut root_tree = Self::empty_tree(2);
             let mut left_index = 0;
             let mut right_index = 0;

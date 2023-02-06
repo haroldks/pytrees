@@ -2,11 +2,13 @@ use crate::dataset::binary_dataset::BinaryDataset;
 use crate::dataset::data_trait::Dataset;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Item, Position, Support};
+use ndarray::s;
 
 #[derive(Clone)]
 pub struct RawBinaryStructure<'data> {
     input: &'data BinaryDataset,
     support: Support,
+    labels_support: Vec<Support>,
     num_labels: usize,
     num_attributes: usize,
     position: Position,
@@ -33,21 +35,26 @@ impl<'data> Structure for RawBinaryStructure<'data> {
         support
     }
 
-    fn labels_support(&self) -> Vec<Support> {
-        let mut support = Vec::with_capacity(self.num_labels);
-        for label in 0..self.num_labels {
-            support.push(self.label_support(label))
+    fn labels_support(&mut self) -> &[Support] {
+        if !self.labels_support.is_empty() {
+            return &self.labels_support;
         }
-        support
+
+        for label in 0..self.num_labels {
+            self.labels_support.push(self.label_support(label))
+        }
+        &self.labels_support
     }
 
     fn support(&mut self) -> Support {
-        let mut support = self.support;
-        if let Some(last) = self.get_last_state() {
-            support = last.len();
+        if self.support < Support::MAX {
+            return self.support;
         }
-        self.support = support;
-        support
+        if let Some(last) = self.get_last_state() {
+            self.support = last.len();
+        }
+
+        self.support
     }
 
     fn get_support(&self) -> Support {
@@ -64,7 +71,9 @@ impl<'data> Structure for RawBinaryStructure<'data> {
         if !self.position.is_empty() {
             self.position.pop();
             self.state.pop();
-            self.support();
+            self.support = Support::MAX;
+            self.labels_support.clear();
+            // self.support();
         }
     }
 
@@ -79,7 +88,8 @@ impl<'data> Structure for RawBinaryStructure<'data> {
         state.push(self.state[0].clone());
         self.state = state;
         self.position = Vec::with_capacity(self.num_attributes);
-        self.support();
+        self.support = self.input.size();
+        self.labels_support.clear();
     }
 
     fn get_position(&self) -> &Position {
@@ -96,6 +106,7 @@ impl<'data> RawBinaryStructure<'data> {
         Self {
             input: inputs,
             support: Support::MAX,
+            labels_support: Vec::with_capacity(inputs.num_labels()),
             num_labels: inputs.num_labels(),
             num_attributes: inputs.num_attributes(),
             position: Vec::with_capacity(inputs.num_attributes()),
@@ -109,11 +120,19 @@ impl<'data> RawBinaryStructure<'data> {
 
     fn pushing(&mut self, item: Item) {
         let mut new_state = vec![];
-        if let Some(last) = self.get_last_state() {
+        self.support = 0;
+        self.labels_support.clear();
+        for label in 0..self.num_labels {
+            self.labels_support.push(0);
+        }
+        if let Some(last) = self.state.last() {
             let inputs = &self.input.get_train().1;
+            let target = &self.input.get_train().0;
             for tid in last {
                 if inputs[*tid][item.0] == item.1 {
                     new_state.push(*tid);
+                    self.support += 1;
+                    self.labels_support[target[*tid]] += 1;
                 }
             }
         }
@@ -123,8 +142,10 @@ impl<'data> RawBinaryStructure<'data> {
 
 #[cfg(test)]
 mod test_raw_binary_structure {
+    use crate::dataset::binary_dataset::BinaryDataset;
+    use crate::dataset::data_trait::Dataset;
     use crate::structures::raw_binary_structure::RawBinaryStructure;
-    use crate::{BinaryDataset, Dataset, HorizontalBinaryStructure, Structure};
+    use crate::structures::structure_trait::Structure;
 
     #[test]
     fn test() {
@@ -164,7 +185,7 @@ mod test_raw_binary_structure {
         data_structure.push((0, 1));
         assert_eq!(data_structure.position.len(), 2);
         assert_eq!(data_structure.position.iter().eq(position.iter()), true);
-        assert_eq!(data_structure.support, 1);
+        assert_eq!(data_structure.support(), 1);
         assert_eq!(data_structure.label_support(0), 1);
         assert_eq!(data_structure.label_support(1), 0);
         let state = data_structure.get_last_state();
@@ -176,7 +197,7 @@ mod test_raw_binary_structure {
         let position = [position[0]];
         assert_eq!(data_structure.position.len(), 1);
         assert_eq!(data_structure.position.iter().eq(position.iter()), true);
-        assert_eq!(data_structure.support, 2);
+        assert_eq!(data_structure.support(), 2);
         assert_eq!(data_structure.label_support(0), 2);
         assert_eq!(data_structure.label_support(1), 0);
 

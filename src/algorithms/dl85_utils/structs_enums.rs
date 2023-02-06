@@ -14,6 +14,12 @@ pub(crate) struct Constraints {
     pub one_time_sort: bool,
     pub specialization: Specialization,
     pub lower_bound: LowerBoundHeuristic,
+    pub branching: BranchingType,
+}
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub(crate) struct Branching {
+    pub branch: usize,
+    pub lower_bound: usize,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -64,6 +70,12 @@ pub enum ReturnCondition {
     NotEnoughSupport,
     PureNode,
     FromSpecializedAlgorithm,
+    None,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum BranchingType {
+    Dynamic,
     None,
 }
 

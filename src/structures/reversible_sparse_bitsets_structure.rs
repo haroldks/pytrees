@@ -9,8 +9,10 @@ use crate::structures::structures_types::{
 
 #[derive(Clone)]
 pub struct RSparseBitsetStructure<'data> {
+    // TODO: Change Initial support value and allow label_support and support computation at each push directly to avoid recomputing the support
     inputs: &'data BitsetStructData,
     support: Support,
+    labels_support: Vec<Support>,
     num_labels: usize,
     num_attributes: usize,
     position: Position,
@@ -50,10 +52,35 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
         support
     }
 
-    fn labels_support(&self) -> Vec<Support> {
+    fn labels_support(&mut self) -> &[Support] {
+        if !self.labels_support.is_empty() {
+            return &self.labels_support;
+        }
+
         let state = &self.state;
-        let mut support = Vec::with_capacity(self.num_labels);
+
+        self.labels_support.clear();
+        for _ in 0..self.num_labels {
+            self.labels_support.push(0);
+        }
+
         if let Some(limit) = self.limit.last() {
+            if self.num_labels == 2 {
+                if *limit >= 0 {
+                    let label_bitset = &self.inputs.targets[0];
+                    let mut count = 0;
+                    for i in 0..(*limit + 1) as usize {
+                        let cursor = self.index[i];
+                        if let Some(val) = state[cursor].last() {
+                            count += (label_bitset[cursor] & val).count_ones()
+                        }
+                    }
+                    self.labels_support[0] = count as Support;
+                    self.labels_support[1] = self.support() - count as Support;
+                }
+                return &self.labels_support;
+            }
+
             for label in 0..self.num_labels {
                 let mut count = 0;
                 if *limit >= 0 {
@@ -61,33 +88,35 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
                     for i in 0..(*limit + 1) as usize {
                         let cursor = self.index[i];
                         if let Some(val) = state[cursor].last() {
+                            let word = label_bitset[cursor] & val;
                             count += (label_bitset[cursor] & val).count_ones()
                         }
                     }
                 }
-                support.push(count as Support);
+                self.labels_support.push(count as Support);
             }
+            return &self.labels_support;
         }
-        support
+        &self.labels_support
     }
 
     fn support(&mut self) -> Support {
+        if !self.support == Support::MAX {
+            return self.support;
+        }
         let state = &self.state;
-        let mut support = self.support;
+        self.support = 0;
         if let Some(limit) = self.limit.last() {
-            let mut count = 0;
             if *limit >= 0 {
                 for i in 0..(*limit + 1) as usize {
                     let cursor = self.index[i];
                     if let Some(val) = state[cursor].last() {
-                        count += val.count_ones();
+                        self.support += val.count_ones() as Support;
                     }
                 }
             }
-            support = count as Support;
         }
-        self.support = support;
-        support
+        self.support
     }
 
     fn get_support(&self) -> Support {
@@ -102,6 +131,7 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     }
 
     fn backtrack(&mut self) {
+        // TODO: Remove the support computation
         if !self.position.is_empty() {
             self.position.pop();
             if self.is_empty() {
@@ -112,14 +142,34 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
                 }
                 self.limit.pop();
             }
-
-            self.support();
+            self.support = Support::MAX;
+            self.labels_support.clear();
+            // self.support();
         }
     }
 
     fn temp_push(&mut self, item: Item) -> Support {
-        let support = self.push(item);
-        self.backtrack();
+        // TODO: Change this to avoid recomputing the support & labels support
+        let mut support = 0;
+
+        if let Some(limit) = self.limit.last() {
+            let mut limit = *limit;
+            if limit >= 0 {
+                let feature_vec = &self.inputs.inputs[item.0];
+                let mut lim = limit as usize;
+                for i in (0..lim + 1).rev() {
+                    let cursor = self.index[i];
+                    if let Some(val) = self.state[cursor].last() {
+                        let word = match item.1 {
+                            0 => val & !feature_vec[cursor],
+                            _ => val & feature_vec[cursor],
+                        };
+                        let word_count = word.count_ones() as Support;
+                        support += word_count;
+                    }
+                }
+            }
+        }
         support
     }
 
@@ -133,7 +183,8 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
             .map(|stack| vec![stack[0]])
             .collect::<Vec<Bitset>>();
         self.state = state;
-        self.support();
+        self.support = self.inputs.size as Support;
+        self.labels_support.clear();
     }
     fn get_position(&self) -> &Position {
         &self.position
@@ -172,7 +223,8 @@ impl<'data> RSparseBitsetStructure<'data> {
 
         let mut structure = RSparseBitsetStructure {
             inputs,
-            support: Support::MAX,
+            support: inputs.size as Support,
+            labels_support: Vec::with_capacity(inputs.targets.len()),
             num_labels: inputs.targets.len(),
             num_attributes,
             position: Vec::with_capacity(num_attributes),
@@ -193,6 +245,13 @@ impl<'data> RSparseBitsetStructure<'data> {
     }
 
     fn pushing(&mut self, item: Item) {
+        // TODO: Directly compute the support here
+        self.support = 0;
+        self.labels_support.clear();
+        for _ in 0..self.num_labels {
+            self.labels_support.push(0);
+        }
+
         if let Some(limit) = self.limit.last() {
             let mut limit = *limit;
             if limit >= 0 {
@@ -215,6 +274,23 @@ impl<'data> RSparseBitsetStructure<'data> {
                             }
                         } else {
                             if self.position.len() == 2 {}
+                            let word_count = word.count_ones() as Support;
+                            self.support += word_count;
+                            if self.num_labels == 2 {
+                                let label_val = &self.inputs.targets[0][cursor];
+                                let zero_count = (label_val & word).count_ones() as Support;
+                                self.labels_support[0] += zero_count;
+                                self.labels_support[1] += (word_count - zero_count);
+                                //  println!("Wtf {}, {} {}",word_count,  (label_val & word).count_ones() as Support, word_count - (label_val & word).count_ones() as Support);
+                                // println!("Label support: {:?}", self.labels_support);
+                            } else {
+                                for j in 0..self.num_labels {
+                                    let label_val = &self.inputs.targets[j][cursor];
+                                    self.labels_support[j] +=
+                                        (label_val & word).count_ones() as Support;
+                                }
+                            }
+
                             self.state[cursor].push(word);
                         }
                     }
@@ -353,7 +429,7 @@ mod test_rsparse_bitset {
 
         structure.backtrack();
 
-        assert_eq!(structure.support, 128);
+        assert_eq!(structure.support(), 128);
         if let Some(limit) = structure.limit.last() {
             assert_eq!(*limit, 1);
         }
@@ -390,7 +466,7 @@ mod test_rsparse_bitset {
 
         structure.backtrack();
         assert_eq!(structure.limit.iter().eq([0, 0].iter()), true);
-        assert_eq!(structure.support, 1);
+        assert_eq!(structure.support(), 1);
         assert_eq!(structure.label_support(0), 1);
         assert_eq!(structure.label_support(1), 0);
         assert_eq!(structure.labels_support().iter().eq([1, 0].iter()), true);

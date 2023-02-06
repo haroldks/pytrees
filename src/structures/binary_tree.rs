@@ -70,6 +70,12 @@ impl<T> Tree<T> {
         Tree { tree: Vec::new() }
     }
 
+    pub fn with_capacity(capacity: usize) -> Self {
+        Tree {
+            tree: Vec::with_capacity(capacity),
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         self.tree.is_empty()
     }

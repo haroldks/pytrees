@@ -3,7 +3,7 @@ use pyo3::{pyclass, pymethods, pymodule, IntoPy, PyObject, PyResult, Python};
 
 use crate::algorithms::dl85::DL85;
 use crate::algorithms::dl85_utils::structs_enums::{
-    Constraints, LowerBoundHeuristic, SortHeuristic, Specialization, Statistics,
+    BranchingType, Constraints, LowerBoundHeuristic, SortHeuristic, Specialization, Statistics,
 };
 use crate::dataset::binary_dataset::BinaryDataset;
 use crate::dataset::data_trait::Dataset;
@@ -74,6 +74,7 @@ impl Dl85InternalClassifier {
             one_time_sort,
             specialization,
             lower_bound,
+            branching: BranchingType::None,
         };
 
         let statistics = Statistics {
@@ -125,6 +126,7 @@ impl Dl85InternalClassifier {
             self.constraints.max_error,
             self.constraints.specialization,
             self.constraints.lower_bound,
+            BranchingType::Dynamic,
             self.constraints.one_time_sort,
             heuristic.as_mut(),
         );

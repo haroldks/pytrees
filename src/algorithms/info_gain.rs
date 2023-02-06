@@ -213,7 +213,12 @@ impl InfoGain {
     where
         S: Structure,
     {
-        let root_classes_support = structure.labels_support();
+        let mut root_classes_support = structure
+            .labels_support()
+            .iter()
+            .map(|x| *x)
+            .collect::<Vec<Support>>();
+
         let parent_entropy = Self::compute_entropy(&root_classes_support);
         let mut candidates_sorted = vec![];
         for attribute in candidates.iter() {
@@ -245,7 +250,11 @@ impl InfoGain {
         S: Structure,
     {
         let _ = structure.push((attribute, 0));
-        let left_classes_supports = structure.labels_support();
+        let left_classes_supports = structure
+            .labels_support()
+            .iter()
+            .map(|x| *x)
+            .collect::<Vec<Support>>();
         structure.backtrack();
 
         let right_classes_support = root_classes_support

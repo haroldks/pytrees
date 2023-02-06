@@ -2,7 +2,8 @@ use crate::algorithms::algorithm_trait::{Algorithm, Basic};
 use crate::algorithms::dl85_utils::slb::{SimilarDatasets, Similarity};
 use crate::algorithms::dl85_utils::stop_conditions::StopConditions;
 use crate::algorithms::dl85_utils::structs_enums::{
-    Constraints, LowerBoundHeuristic, ReturnCondition, Specialization, Statistics,
+    Branching, BranchingType, Constraints, LowerBoundHeuristic, ReturnCondition, Specialization,
+    Statistics,
 };
 use crate::algorithms::lgdt::LGDT;
 use crate::algorithms::murtree::MurTree;
@@ -45,10 +46,11 @@ where
         max_time: usize,
         specialization: Specialization,
         lower_bound: LowerBoundHeuristic,
+        branching: BranchingType,
         one_time_sort: bool,
         heuristic: &'heur mut H,
     ) -> Self {
-        let constaints = Constraints {
+        let constraints = Constraints {
             max_depth,
             min_sup,
             max_error,
@@ -56,9 +58,10 @@ where
             one_time_sort,
             specialization,
             lower_bound,
+            branching,
         };
         Self {
-            constraints: constaints,
+            constraints,
             heuristic,
             cache: Trie::new(),
             stop_conditions: StopConditions::default(),
@@ -66,7 +69,7 @@ where
                 num_attributes: 0,
                 num_samples: 0,
                 train_distribution: [0, 0],
-                constraints: constaints,
+                constraints,
                 cache_size: 0,
                 tree_error: 0,
                 duration: Duration::default(),
@@ -77,12 +80,18 @@ where
     }
 
     pub fn fit(&mut self, structure: &mut RSparseBitsetStructure) {
-        // Update Statistics structures
+        // BEGIN STEP: Setup everything in the statist Update Statistics structures
         self.statistics.num_attributes = structure.num_attributes();
         let distribution = structure.labels_support();
         self.statistics.train_distribution = [distribution[0], distribution[1]];
         self.statistics.num_samples = structure.support();
+        // END STEP : Setup everything in the statistics structures
 
+        // BEGIN STEP: Setup the cache
+        self.cache = Trie::with_capacity(structure.num_attributes(), self.constraints.max_depth);
+        // END STEP: Setup the cache
+
+        // BEGIN STEP: Load candidates
         let mut candidates = Vec::new();
         if self.constraints.min_sup == 1 {
             candidates = (0..structure.num_attributes()).collect();
@@ -95,21 +104,26 @@ where
                 }
             }
         }
+        // END STEP: Load candidates
 
-        self.heuristic.compute(structure, &mut candidates); // Will sort the candidates according to the heuristic
+        // BEGIN STEP: Sort candidates
+        self.heuristic.compute(structure, &mut candidates);
+        // END STEP: Sort candidates
+
+        // BEGIN STEP: Setup the root
         let mut root_data = T::new();
-
         let root_leaf_error = Self::leaf_error(&structure.labels_support());
         root_data.set_node_error(root_leaf_error.0);
         root_data.set_leaf_error(root_leaf_error.0);
-
         let root = TrieNode::new(root_data);
         self.cache.add_root(root);
         let root_index = self.cache.get_root_index();
+        // END STEP: Setup the root
 
         let mut similarity_data = SimilarDatasets::new();
-
         let mut itemset = BTreeSet::new();
+
+        // BEGIN STEP: Run the algorithm
         self.run_time = Instant::now();
         self.recursion(
             structure,
@@ -117,16 +131,20 @@ where
             self.constraints.max_error,
             Attribute::MAX,
             &mut itemset,
-            candidates,
+            &candidates,
             root_index,
             &mut similarity_data,
         );
+        // END STEP: Run the algorithm
+
+        // BEGIN STEP: Update the statistics
         self.update_statistics();
         if let Some(root) = self.cache.get_node(self.cache.get_root_index()) {
             if root.value.get_node_error() < <usize>::MAX {
                 self.generate_tree();
             }
         }
+        // END STEP: Update the statistics
     }
 
     fn recursion(
@@ -136,15 +154,16 @@ where
         upper_bound: usize,
         parent_attribute: Attribute,
         itemset: &mut BTreeSet<Item>,
-        candidates: Vec<usize>,
+        candidates: &Vec<usize>,
         parent_index: Index,
         similarity_data: &mut SimilarDatasets<T>,
     ) -> (usize, ReturnCondition) {
         // TODO: Check if there is not enough time left (Maybe this can be done outside of the recursion)
 
         let mut child_upper_bound = upper_bound;
-        let current_support = structure.support(); // TODO: Go to get_support ?
+        let current_support = structure.support();
 
+        // BEGIN STEP: Check if we should stop
         if let Some(node) = self.cache.get_node_mut(parent_index) {
             let return_condition = self.stop_conditions.check(
                 node,
@@ -161,7 +180,10 @@ where
                 return (node.value.get_node_error(), return_condition.1);
             }
         }
+        // END STEP: Check if we should stop
 
+        // TODO : Add the option to use it only when similarity branching is used
+        // BEGIN STEP: Check if we should use the similarity lower bound to stop
         if let LowerBoundHeuristic::Similarity = self.constraints.lower_bound {
             if let Some(node) = self.cache.get_node_mut(parent_index) {
                 let lower_bound = max(
@@ -178,13 +200,16 @@ where
                 }
             }
         }
+        // END STEP: Check if we should use the similarity lower bound to stop
 
+        // BEGIN STEP: Check if we should use the murtree specialization and if yes use it
         if self.constraints.max_depth - depth <= 2 {
             match self.constraints.specialization {
                 Specialization::Murtree => {
                     return self.run_specialized_algorithm(
                         structure,
                         parent_index,
+                        upper_bound,
                         itemset,
                         self.constraints.max_depth - depth,
                     );
@@ -192,123 +217,141 @@ where
                 Specialization::None => {}
             }
         }
+        // END STEP: Check if we should use the murtree specialization and if yes use it
 
-        // Explore the children of the node
-
-        // Get the potential children of the node based on the min_sup
+        // BEGIN STEP: Get the node candidates
         let mut node_candidates = vec![];
-        node_candidates = self.get_node_candidates(structure, parent_attribute, &candidates);
+        node_candidates = self.get_node_candidates(structure, parent_attribute, candidates);
+        // END STEP: Get the node candidates
 
+        // BEGIN STEP: Check if we should stop because there is no more candidates
         if node_candidates.is_empty() {
             if let Some(node) = self.cache.get_node_mut(parent_index) {
                 node.value.set_as_leaf();
                 return (node.value.get_node_error(), ReturnCondition::None);
             }
         }
+        // END STEP: Check if we should stop because there is no more candidates
 
+        // BEGIN STEP: Sort the candidates according to the heuristic
         if !self.constraints.one_time_sort {
             self.heuristic.compute(structure, &mut node_candidates);
         }
+        // END STEP: Sort the candidates according to the heuristic
 
+        // BEGIN STEP: Setup the node similarity data
         let mut child_similarity_data = SimilarDatasets::new();
         let mut min_lower_bound = <usize>::MAX;
+        // END STEP: Setup the node similarity data
 
+        // BEGIN STEP: Explore the candidates
         for child in node_candidates.iter() {
-            let mut left_lower_bound = 0;
-            let mut right_lower_bound = 0;
-
-            let lower_bounds = self.compute_lower_bounds(
+            // BEGIN STEP: Choose where to branch first
+            let branching_data = self.find_where_to_branch_first(
                 *child,
-                structure,
                 itemset,
+                structure,
                 &mut child_similarity_data,
-                self.constraints.lower_bound,
             );
-            left_lower_bound = lower_bounds.0;
-            right_lower_bound = lower_bounds.1;
 
-            let mut item = (*child, 0);
+            let first = &branching_data[0];
+            let second = &branching_data[1];
+            // END STEP: Choose where to branch first
+
+            // BEGIN STEP: Setup the first child node
+            let mut item = (*child, first.branch);
+
+            // TODO: Check if this is the best place to do this
             let _ = structure.push(item);
             itemset.insert(item);
-
-            let (_, child_index) = self.find_or_create_in_cache(structure, itemset);
+            let (is_new, child_index) = self.find_or_create_in_cache(structure, itemset);
 
             if let Some(child_node) = self.cache.get_node_mut(child_index) {
-                child_node.value.set_lower_bound(left_lower_bound);
+                child_node.value.set_lower_bound(first.lower_bound);
             }
+            // END STEP: Setup the first child node
 
+            // BEGIN STEP: Explore the first child node
             let return_infos = self.recursion(
                 structure,
                 depth + 1,
                 child_upper_bound,
                 *child,
                 itemset,
-                node_candidates.clone(),
+                &node_candidates,
                 child_index,
                 &mut child_similarity_data,
             );
-
             let left_error = return_infos.0;
+            // END STEP: Explore the first child node
 
-            let _ = self.update_similarity_data(
-                &mut child_similarity_data,
-                structure,
-                child_index,
-                return_infos.1,
-            );
+            // BEGIN STEP: Check if we should update similarity data
+            if let LowerBoundHeuristic::Similarity = self.constraints.lower_bound {
+                let _ = self.update_similarity_data(
+                    &mut child_similarity_data,
+                    structure,
+                    child_index,
+                    return_infos.1,
+                );
+            }
+            // END STEP: Check if we should update similarity data
 
             structure.backtrack();
             itemset.remove(&item);
 
-            // If the error is too high, we don't need to explore the right part of the node
-            if left_error as f64 > child_upper_bound as f64 - right_lower_bound as f64 {
+            // BEGIN STEP: If the error is too high, we don't need to explore the right part of the node
+            if left_error as f64 >= child_upper_bound as f64 - second.lower_bound as f64 {
                 // TODO: Ugly
                 if let Some(node) = self.cache.get_node_mut(child_index) {
                     min_lower_bound = match left_error == <usize>::MAX {
                         true => min(
                             min_lower_bound,
-                            node.value.get_lower_bound() + right_lower_bound,
+                            node.value.get_lower_bound() + second.lower_bound,
                         ),
-                        false => min(min_lower_bound, left_error + right_lower_bound),
+                        false => min(min_lower_bound, left_error + second.lower_bound),
                     }
                 }
 
                 continue;
             }
+            // END STEP: If the error is too high, we don't need to explore the right part of the node
 
-            // Explore right part of the node
-
+            // BEGIN STEP: Setup the second child node
             let right_upper_bound = child_upper_bound - left_error;
-            let item = (*child, 1);
-
+            let item = (*child, second.branch);
             let _ = structure.push(item);
             itemset.insert(item);
-
             let (_, child_index) = self.find_or_create_in_cache(structure, itemset);
 
             if let Some(child_node) = self.cache.get_node_mut(child_index) {
-                child_node.value.set_lower_bound(right_lower_bound);
+                child_node.value.set_lower_bound(second.lower_bound);
             }
+            // END STEP: Setup the second child node
 
+            // BEGIN STEP: Explore the second child node
             let return_infos = self.recursion(
                 structure,
                 depth + 1,
                 right_upper_bound,
                 *child,
                 itemset,
-                node_candidates.clone(),
+                &node_candidates,
                 child_index,
                 similarity_data,
             );
-
             let right_error = return_infos.0;
+            // END STEP: Explore the second child node
 
-            let _ = self.update_similarity_data(
-                &mut child_similarity_data,
-                structure,
-                child_index,
-                return_infos.1,
-            );
+            // BEGIN STEP: Check if we should update similarity data
+            if let LowerBoundHeuristic::Similarity = self.constraints.lower_bound {
+                let _ = self.update_similarity_data(
+                    &mut child_similarity_data,
+                    structure,
+                    child_index,
+                    return_infos.1,
+                );
+            }
+            // END STEP: Check if we should update similarity data
 
             structure.backtrack();
             itemset.remove(&item);
@@ -317,8 +360,8 @@ where
                 continue;
             }
 
+            // BEGIN STEP: Update the node error if possible based on the upper bound and the branches error
             let feature_error = left_error + right_error;
-
             if feature_error < child_upper_bound {
                 child_upper_bound = feature_error;
 
@@ -326,17 +369,21 @@ where
                     parent_node.value.set_node_error(child_upper_bound);
 
                     parent_node.value.set_test(*child);
-                }
-                if child_upper_bound == 0 {
-                    break;
+
+                    if parent_node.value.get_lower_bound() == child_upper_bound {
+                        break;
+                    }
                 }
             } else {
                 min_lower_bound = min(feature_error, min_lower_bound);
             }
+            // END STEP: Update the node error if possible based on the upper bound and the branches error
         }
 
+        // BEGIN STEP: If the node error is still MAX, we need to update the lower bound
         if let Some(node) = self.cache.get_node_mut(parent_index) {
             if node.value.get_node_error() == <usize>::MAX {
+                // println!("Here 2");
                 node.value.set_lower_bound(max(
                     node.value.get_lower_bound(),
                     max(min_lower_bound, upper_bound),
@@ -355,13 +402,14 @@ where
                 .get_node_error(),
             ReturnCondition::Done,
         );
+        // END STEP: If the node error is still MAX, we need to update the lower bound
     }
 
     fn get_node_candidates(
         &self,
         structure: &mut RSparseBitsetStructure,
         last_candidate: Attribute,
-        candidates: &Vec<Attribute>,
+        candidates: &[Attribute],
     ) -> Vec<Attribute> {
         let mut node_candidates = Vec::new();
         let support = structure.support();
@@ -389,6 +437,7 @@ where
 
         if is_new {
             if let Some(node) = self.cache.get_node_mut(index) {
+                let postion = structure.get_position().clone();
                 let classes_support = structure.labels_support();
                 let (leaf_error, class) = Self::leaf_error(&classes_support);
                 node.value.set_leaf_error(leaf_error);
@@ -432,6 +481,75 @@ where
         (lower_bounds[0], lower_bounds[1])
     }
 
+    fn find_where_to_branch_first(
+        &self,
+        child: Attribute,
+        itemset: &mut BTreeSet<Item>,
+        structure: &mut RSparseBitsetStructure,
+        similarity_dataset: &mut SimilarDatasets<T>,
+    ) -> [Branching; 2] {
+        let mut lower_bounds = [0, 0];
+        // If Dynamic branching is enabled, we check where to move first
+        if let BranchingType::Dynamic = self.constraints.branching {
+            for (i, lower_bound) in lower_bounds.iter_mut().enumerate() {
+                itemset.insert((child, i));
+                if let Some(index) = self.cache.find(itemset.iter()) {
+                    if let Some(node) = self.cache.get_node(index) {
+                        let error = node.value.get_node_error();
+                        *lower_bound = match error < <usize>::MAX {
+                            true => error,
+                            false => node.value.get_lower_bound(),
+                        }
+                    }
+                }
+                itemset.remove(&(child, i));
+            }
+
+            // println!("Lower bounds : {:?}", lower_bounds);
+
+            if let LowerBoundHeuristic::Similarity = self.constraints.lower_bound {
+                let similarity_lower_bounds = self.compute_lower_bounds(
+                    child,
+                    structure,
+                    itemset,
+                    similarity_dataset,
+                    self.constraints.lower_bound,
+                );
+
+                lower_bounds[0] = max(lower_bounds[0], similarity_lower_bounds.0);
+                lower_bounds[1] = max(lower_bounds[1], similarity_lower_bounds.1);
+            }
+        }
+
+        let first_item = match lower_bounds[1] > lower_bounds[0] {
+            true => 1usize,
+            false => 0,
+        };
+        // println!("First item : {:?}", first_item);
+
+        let second_item = (first_item + 1) % 2;
+
+        let first_lower_bound = match first_item == 0 {
+            true => lower_bounds[0],
+            false => lower_bounds[1],
+        };
+
+        let second_lower_bound = match second_item == 0 {
+            true => lower_bounds[0],
+            false => lower_bounds[1],
+        };
+
+        let first_data = Branching {
+            branch: first_item,
+            lower_bound: first_lower_bound,
+        };
+        let second_data = Branching {
+            branch: second_item,
+            lower_bound: second_lower_bound,
+        };
+        [first_data, second_data]
+    }
+
     fn update_similarity_data(
         &self,
         similarity_dataset: &mut SimilarDatasets<T>,
@@ -470,9 +588,19 @@ where
         &mut self,
         structure: &mut RSparseBitsetStructure,
         index: Index,
+        upper_bound: usize,
         itemset: &mut BTreeSet<Item>,
         depth: Depth,
     ) -> (usize, ReturnCondition) {
+        if let Some(node) = self.cache.get_node(index) {
+            if upper_bound < node.value.get_lower_bound() {
+                return (
+                    node.value.get_node_error(),
+                    ReturnCondition::LowerBoundConstrained,
+                );
+            }
+        }
+
         let mut tree = LGDT::fit(structure, self.constraints.min_sup, depth, MurTree::fit);
         let error = LGDT::get_tree_error(&tree);
         self.stitch_to_cache(index, &tree, tree.get_root_index(), itemset);
@@ -617,7 +745,9 @@ where
 #[cfg(test)]
 mod dl85_test {
     use crate::algorithms::dl85::DL85;
-    use crate::algorithms::dl85_utils::structs_enums::{LowerBoundHeuristic, Specialization};
+    use crate::algorithms::dl85_utils::structs_enums::{
+        BranchingType, LowerBoundHeuristic, Specialization,
+    };
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
     use crate::heuristics::{Heuristic, InformationGain, NoHeuristic};
@@ -640,6 +770,7 @@ mod dl85_test {
             10,
             Specialization::None,
             LowerBoundHeuristic::None,
+            BranchingType::Dynamic,
             false,
             heuristic.as_mut(),
         );

@@ -8,6 +8,7 @@ use crate::structures::structures_types::{
 pub struct HorizontalBinaryStructure<'data> {
     input: &'data HorizontalData,
     support: Support,
+    labels_support: Vec<Support>,
     num_labels: usize,
     num_attributes: usize,
     position: Position,
@@ -33,23 +34,28 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
         support
     }
 
-    fn labels_support(&self) -> Vec<Support> {
-        let mut support = Vec::with_capacity(self.num_labels);
-        if let Some(state) = self.get_last_state() {
+    fn labels_support(&mut self) -> &[Support] {
+        if !self.labels_support.is_empty() {
+            return &self.labels_support;
+        }
+        self.labels_support.clear();
+        if let Some(state) = self.state.last() {
             for label_state in state.iter() {
-                support.push(label_state.len());
+                self.labels_support.push(label_state.len());
             }
         }
-        support
+        &self.labels_support
     }
 
     fn support(&mut self) -> usize {
-        let mut support = self.support;
-        if let Some(last) = self.get_last_state() {
-            support = last.iter().map(|rows| rows.len()).sum();
+        if self.support < Support::MAX {
+            return self.support;
         }
-        self.support = support;
-        support
+        let mut support = 0;
+        if let Some(last) = self.get_last_state() {
+            self.support = last.iter().map(|rows| rows.len()).sum();
+        }
+        self.support
     }
 
     fn get_support(&self) -> Support {
@@ -66,7 +72,9 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
         if !self.position.is_empty() {
             self.position.pop();
             self.state.pop();
-            self.support();
+            self.labels_support.clear();
+            self.support = <Support>::MAX;
+            // self.support();
         }
     }
 
@@ -81,7 +89,8 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
         state.push(self.state[0].clone());
         self.position = Vec::with_capacity(self.num_attributes);
         self.state = state;
-        self.support();
+        self.support = self.input.iter().map(|label| label.len()).sum::<Support>();
+        self.labels_support.clear();
     }
     fn get_position(&self) -> &Position {
         &self.position
@@ -107,7 +116,7 @@ impl<'data> HorizontalBinaryStructure<'data> {
 
     pub fn new(inputs: &'data HorizontalData) -> Self {
         let mut state = HBSStackState::with_capacity(inputs[0][0].len());
-
+        let size = inputs.iter().map(|label| label.len()).sum::<usize>();
         let mut initial_state = HBSState::new();
         for input in inputs {
             initial_state.push((0..input.len()).collect::<Vec<usize>>())
@@ -116,7 +125,8 @@ impl<'data> HorizontalBinaryStructure<'data> {
 
         let mut structure = HorizontalBinaryStructure {
             input: inputs,
-            support: Support::MAX,
+            support: size,
+            labels_support: Vec::with_capacity(inputs.len()),
             num_labels: inputs.len(),
             num_attributes: inputs[0][0].len(),
             position: Vec::with_capacity(inputs[0][0].len()),
@@ -132,7 +142,12 @@ impl<'data> HorizontalBinaryStructure<'data> {
 
     fn pushing(&mut self, item: Item) {
         let mut new_state = HBSState::new();
-        if let Some(last) = self.get_last_state() {
+        self.support = 0;
+        self.labels_support.clear();
+        for i in 0..self.num_labels {
+            self.labels_support.push(0);
+        }
+        if let Some(last) = self.state.last() {
             for (i, label_state) in last.iter().enumerate() {
                 let mut label_transactions = Vec::with_capacity(label_state.len());
                 for transaction in label_state {
@@ -141,6 +156,8 @@ impl<'data> HorizontalBinaryStructure<'data> {
                         label_transactions.push(*transaction);
                     }
                 }
+                self.support += label_transactions.len();
+                self.labels_support[i] = label_transactions.len();
                 new_state.push(label_transactions);
             }
         }
@@ -216,7 +233,7 @@ mod test_horizontal_binary_structure {
         let position = [position[0]];
         assert_eq!(data_structure.position.len(), 1);
         assert_eq!(data_structure.position.iter().eq(position.iter()), true);
-        assert_eq!(data_structure.support, 2);
+        assert_eq!(data_structure.support(), 2);
         assert_eq!(data_structure.label_support(0), 2);
         assert_eq!(data_structure.label_support(1), 0);
 

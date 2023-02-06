@@ -1,6 +1,6 @@
 use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::Attribute;
+use crate::structures::structures_types::{Attribute, Support};
 use float_cmp::{ApproxEq, F64Margin};
 
 pub type DataStructure<'a> = RSparseBitsetStructure<'a>;
@@ -21,7 +21,8 @@ pub struct GiniIndex;
 
 impl Heuristic for GiniIndex {
     fn compute(&self, structure: &mut DataStructure, candidates: &mut Vec<Attribute>) {
-        let root_classes_support = structure.labels_support();
+        let mut root_classes_support = [];
+        root_classes_support.copy_from_slice(structure.labels_support());
         let mut candidates_sorted = vec![];
         for attribute in candidates.iter() {
             let gini = Self::gini_index(*attribute, structure, &root_classes_support);
@@ -42,7 +43,11 @@ impl GiniIndex {
         root_classes_support: &[usize],
     ) -> f64 {
         let _ = structure.push((attribute, 0));
-        let left_classes_supports = structure.labels_support();
+        let left_classes_supports = structure
+            .labels_support()
+            .iter()
+            .map(|x| *x)
+            .collect::<Vec<Support>>();
         structure.backtrack();
 
         let right_classes_support = root_classes_support
@@ -110,7 +115,11 @@ trait Handler {
         attributes: &mut Vec<Attribute>,
         ratio: bool,
     ) {
-        let root_classes_support = structure.labels_support();
+        let root_classes_support = structure
+            .labels_support()
+            .iter()
+            .map(|x| *x)
+            .collect::<Vec<Support>>();
         let parent_entropy = Self::compute_entropy(&root_classes_support);
         let mut candidates_sorted = vec![];
         for attribute in attributes.iter() {
@@ -138,7 +147,11 @@ trait Handler {
         ratio: bool,
     ) -> f64 {
         let _ = structure.push((attribute, 0));
-        let left_classes_supports = structure.labels_support();
+        let left_classes_supports = structure
+            .labels_support()
+            .iter()
+            .map(|x| *x)
+            .collect::<Vec<Support>>();
         structure.backtrack();
 
         let right_classes_support = root_classes_support

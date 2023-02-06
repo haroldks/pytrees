@@ -8,6 +8,7 @@ use crate::structures::structures_types::{
 pub struct BitsetStructure<'data> {
     inputs: &'data BitsetStructData,
     support: Support,
+    labels_support: Vec<Support>,
     num_attributes: usize,
     num_labels: usize,
     position: Position,
@@ -38,31 +39,53 @@ impl<'data> Structure for BitsetStructure<'data> {
         support
     }
 
-    fn labels_support(&self) -> Vec<Support> {
-        let mut support = Vec::with_capacity(self.num_labels);
-        if let Some(state) = self.get_last_state() {
+    fn labels_support(&mut self) -> &[Support] {
+        if !self.labels_support.is_empty() {
+            return &self.labels_support;
+        }
+        self.labels_support.clear();
+
+        if self.num_labels == 2 {
+            if let Some(state) = self.get_last_state() {
+                let mut count = 0;
+                let label_bitset = &self.inputs.targets[0];
+                for (i, label_chunk) in label_bitset.iter().enumerate() {
+                    count += (*label_chunk & state[i]).count_ones();
+                }
+                self.labels_support.push(count as Support);
+                let support = self.support();
+                self.labels_support.push(support - count as Support);
+            }
+            return &self.labels_support;
+        }
+
+        if let Some(state) = self.state.last() {
             for label in 0..self.num_labels {
                 let mut count = 0;
                 let label_bitset = &self.inputs.targets[label];
                 for (i, label_chunk) in label_bitset.iter().enumerate() {
                     count += (*label_chunk & state[i]).count_ones();
                 }
-                support.push(count as Support);
+                self.labels_support.push(count as Support);
             }
+            return &self.labels_support;
         }
-        support
+        return &self.labels_support;
     }
 
     fn support(&mut self) -> Support {
-        let mut support = self.support;
+        if self.support < Support::MAX {
+            return self.support;
+        }
+        self.support = 0;
         if let Some(current_state) = self.get_last_state() {
-            support = current_state
+            self.support = current_state
                 .iter()
                 .map(|long| long.count_ones())
                 .sum::<u32>() as Support;
         }
-        self.support = support;
-        support
+
+        self.support
     }
 
     fn get_support(&self) -> Support {
@@ -79,7 +102,9 @@ impl<'data> Structure for BitsetStructure<'data> {
         if !self.position.is_empty() {
             self.position.pop();
             self.state.pop();
-            self.support(); // TODO: check if this is necessary
+            self.support = Support::MAX;
+            self.labels_support.clear();
+            // self.support(); // TODO: check if this is necessary
         }
     }
 
@@ -94,7 +119,8 @@ impl<'data> Structure for BitsetStructure<'data> {
         let mut state = BitsetStackState::with_capacity(self.num_attributes);
         state.push(self.state[0].clone());
         self.state = state;
-        self.support();
+        self.support = self.inputs.size as Support;
+        self.labels_support.clear();
     }
     fn get_position(&self) -> &Position {
         &self.position
@@ -160,14 +186,15 @@ impl<'data> BitsetStructure<'data> {
 
         let mut structure = BitsetStructure {
             inputs,
-            support: Support::MAX,
+            support: inputs.size as Support,
+            labels_support: Vec::with_capacity(inputs.targets.len()),
             num_attributes: inputs.inputs.len(),
             num_labels: inputs.targets.len(),
             position: Vec::with_capacity(num_attributes),
             state,
         };
 
-        structure.support();
+        // structure.support();
         structure
     }
 
@@ -177,13 +204,37 @@ impl<'data> BitsetStructure<'data> {
 
     fn pushing(&mut self, item: Item) {
         let mut new_state = Bitset::new();
-        if let Some(last_state) = self.get_last_state() {
+        self.support = 0;
+        self.labels_support.clear();
+        for _ in 0..self.num_labels {
+            self.labels_support.push(0);
+        }
+
+        if let Some(last_state) = self.state.last() {
             let feature_vec = &self.inputs.inputs[item.0];
             for (i, long) in feature_vec.iter().enumerate() {
-                new_state.push(match item.1 {
+                let word = match item.1 {
                     0 => last_state[i] & !*long,
                     _ => last_state[i] & *long,
-                })
+                };
+
+                let word_count = word.count_ones() as Support;
+                self.support += word_count;
+
+                if self.num_labels == 2 {
+                    let label_chunk = &self.inputs.targets[0][i];
+                    let zero_count = (word & label_chunk).count_ones() as Support;
+                    self.labels_support[0] += zero_count;
+                    self.labels_support[1] += word_count - zero_count;
+                } else {
+                    for n in 0..self.num_labels {
+                        let label_chunk = &self.inputs.targets[n][i];
+                        let label_count = (word & label_chunk).count_ones() as Support;
+                        self.labels_support[i] += label_count;
+                    }
+                }
+
+                new_state.push(word);
             }
         }
         self.state.push(new_state)
@@ -196,6 +247,7 @@ mod test_bitsets {
     use crate::dataset::data_trait::Dataset;
     use crate::structures::bitsets_structure::BitsetStructure;
     use crate::structures::structure_trait::Structure;
+    use crate::structures::structures_types::Support;
 
     #[test]
     fn build_bitset_data() {
@@ -264,7 +316,7 @@ mod test_bitsets {
         let expected_position = [(3usize, 1usize)];
 
         assert_eq!(structure.position.iter().eq(expected_position.iter()), true);
-        assert_eq!(structure.support, 4);
+        assert_eq!(structure.support, Support::MAX);
         if let Some(state) = structure.get_last_state() {
             let expected_state = [197u64];
             assert_eq!((state.iter().eq(expected_state.iter())), true);

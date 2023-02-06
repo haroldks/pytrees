@@ -109,12 +109,13 @@ impl IDK {
 
 #[cfg(test)]
 mod idk_test {
-    use crate::algorithms::algorithm_trait::Basic;
+    use crate::algorithms::algorithm_trait::{Algorithm, Basic};
     use crate::algorithms::idk::IDK;
-    use crate::{
-        Algorithm, BinaryDataset, BitsetStructure, Dataset, InfoGain, MurTree,
-        RSparseBitsetStructure, LGDT,
-    };
+    use crate::algorithms::info_gain::InfoGain;
+    use crate::dataset::binary_dataset::BinaryDataset;
+    use crate::dataset::data_trait::Dataset;
+    use crate::structures::bitsets_structure::BitsetStructure;
+    use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
 
     #[test]
     fn test_idk() {

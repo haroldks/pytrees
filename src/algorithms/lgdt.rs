@@ -188,6 +188,7 @@ mod lgdt_test {
         for _ in 0..steps {
             let mut rng = rand::thread_rng();
             let depth = rng.gen_range(1..11) as usize;
+
             let a = LGDT::fit(&mut structure, 1, depth, InfoGain::fit);
             let error = LGDT::get_tree_error(&a);
             assert_eq!(expected_errors.contains(&error), true);

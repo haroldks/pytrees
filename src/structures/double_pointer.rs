@@ -39,7 +39,7 @@ impl<'data> Structure for DoublePointerStructure<'data> {
         todo!()
     }
 
-    fn labels_support(&self) -> Vec<Support> {
+    fn labels_support(&mut self) -> &[Support] {
         todo!()
     }
 

@@ -20,24 +20,31 @@ X, y = dataset[:, 1:], dataset[:, 0]
 # print(f"Test accuracy : {classifier.score(X_test, y_test)}")
 
 #
-from pydl85 import DL85Classifier
+# from pydl85 import DL85Classifier
+#
+# clf = DL85Classifier(
+#     min_sup=1,
+#     max_depth=3,
+#     depth_two_special_algo=False,
+#     similar_lb=False,
+#     dynamic_branch=True,
+#     similar_for_branching=False,
+#     print_output=True,
+# )
+# clf.fit(X, y)
+# print(f"Train accuracy : {clf.error_}")
+# print(f"Runtime : {clf.runtime_}")
+
+
+from pytrees.optimal import DL85Classifier
 
 clf = DL85Classifier(
     min_sup=1,
-    max_depth=3,
-    depth_two_special_algo=False,
-    similar_lb=False,
-    dynamic_branch=True,
-    similar_for_branching=False,
-    print_output=True,
+    max_depth=4,
+    specialization="murtree",
+    lower_bound="similarity",
+    branching="dynamic",
 )
 clf.fit(X, y)
-print(f"Train accuracy : {clf.error_}")
-print(f"Runtime : {clf.runtime_}")
-
-
-# from pytrees.optimal import DL85Classifier
-# clf = DL85Classifier(min_sup=1, max_depth=4, specialization="none", lower_bound="none")
-# clf.fit(X, y)
-# print(f"Train accuracy : {clf.accuracy_}")
-# print(f"Runtime : {clf.statistics}")
+print(f"Train accuracy : {clf.accuracy_}")
+print(f"Runtime : {clf.statistics}")

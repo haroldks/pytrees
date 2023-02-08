@@ -61,7 +61,12 @@ pub enum Specialization {
     Murtree,
     None,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum HasIntersected {
+    Yes,
+    No,
+}
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum ReturnCondition {
     Done,
     TimeLimitReached,

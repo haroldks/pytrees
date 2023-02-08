@@ -33,6 +33,7 @@ impl Dl85InternalClassifier {
         time: isize,
         specialization: &str,
         lower_bound: &str,
+        branching_type: &str,
         one_time_sort: bool,
         heuristic: &str,
     ) -> Self {
@@ -66,6 +67,12 @@ impl Dl85InternalClassifier {
             _ => panic!("Invalid heuristic"),
         };
 
+        let branching = match branching_type {
+            "none" => BranchingType::None,
+            "dynamic" => BranchingType::Dynamic,
+            _ => panic!("Invalid branching type"),
+        };
+
         let constraints = Constraints {
             max_depth,
             min_sup,
@@ -74,7 +81,7 @@ impl Dl85InternalClassifier {
             one_time_sort,
             specialization,
             lower_bound,
-            branching: BranchingType::None,
+            branching,
         };
 
         let statistics = Statistics {
@@ -126,7 +133,7 @@ impl Dl85InternalClassifier {
             self.constraints.max_error,
             self.constraints.specialization,
             self.constraints.lower_bound,
-            BranchingType::Dynamic,
+            self.constraints.branching,
             self.constraints.one_time_sort,
             heuristic.as_mut(),
         );

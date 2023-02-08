@@ -14,7 +14,7 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         lower_bound="similarity",
         one_time_sort=True,
         heuristic="no_heuristic",
-        fit_method="murtree",
+        branching="dynamic",
     ):
         super().__init__()
         self.min_sup = min_sup
@@ -23,9 +23,9 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         self.max_time = max_time
         self.specialization = specialization
         self.lower_bound = lower_bound
+        self.branching = branching
         self.one_time_sort = one_time_sort
         self.heuristic = heuristic
-        self.fit_method = fit_method
 
         clf = Dl85InternalClassifier(
             min_sup,
@@ -34,6 +34,7 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
             max_time,
             specialization,
             lower_bound,
+            branching,
             one_time_sort,
             heuristic,
         )

@@ -2,8 +2,8 @@ use crate::algorithms::algorithm_trait::{Algorithm, Basic};
 use crate::algorithms::dl85_utils::slb::{SimilarDatasets, Similarity};
 use crate::algorithms::dl85_utils::stop_conditions::StopConditions;
 use crate::algorithms::dl85_utils::structs_enums::{
-    Branching, BranchingType, Constraints, LowerBoundHeuristic, ReturnCondition, Specialization,
-    Statistics,
+    Branching, BranchingType, Constraints, HasIntersected, LowerBoundHeuristic, ReturnCondition,
+    Specialization, Statistics,
 };
 use crate::algorithms::lgdt::LGDT;
 use crate::algorithms::murtree::MurTree;
@@ -129,10 +129,11 @@ where
             structure,
             0,
             self.constraints.max_error,
-            Attribute::MAX,
+            (Attribute::MAX, 0),
             &mut itemset,
             &candidates,
             root_index,
+            true,
             &mut similarity_data,
         );
         // END STEP: Run the algorithm
@@ -152,17 +153,20 @@ where
         structure: &mut RSparseBitsetStructure,
         depth: Depth,
         upper_bound: usize,
-        parent_attribute: Attribute,
+        parent_item: Item,
         itemset: &mut BTreeSet<Item>,
         candidates: &Vec<usize>,
         parent_index: Index,
+        parent_is_new: bool,
         similarity_data: &mut SimilarDatasets<T>,
-    ) -> (usize, ReturnCondition) {
+    ) -> (usize, ReturnCondition, HasIntersected) {
         // TODO: Check if there is not enough time left (Maybe this can be done outside of the recursion)
 
         let mut child_upper_bound = upper_bound;
         let current_support = structure.support();
 
+        // println!("Itemset: {:?}", itemset);
+        // println!("Structure: {:?}", structure.get_position());
         // BEGIN STEP: Check if we should stop
         if let Some(node) = self.cache.get_node_mut(parent_index) {
             let return_condition = self.stop_conditions.check(
@@ -177,10 +181,18 @@ where
             );
 
             if return_condition.0 {
-                return (node.value.get_node_error(), return_condition.1);
+                return (
+                    node.value.get_node_error(),
+                    return_condition.1,
+                    HasIntersected::No,
+                );
             }
         }
         // END STEP: Check if we should stop
+
+        if !parent_is_new {
+            let _ = structure.push(parent_item);
+        }
 
         // TODO : Add the option to use it only when similarity branching is used
         // BEGIN STEP: Check if we should use the similarity lower bound to stop
@@ -196,7 +208,11 @@ where
                     .stop_conditions
                     .stop_from_lower_bound(node, child_upper_bound);
                 if return_condition.0 {
-                    return (node.value.get_node_error(), return_condition.1);
+                    return (
+                        node.value.get_node_error(),
+                        return_condition.1,
+                        HasIntersected::Yes,
+                    );
                 }
             }
         }
@@ -221,14 +237,18 @@ where
 
         // BEGIN STEP: Get the node candidates
         let mut node_candidates = vec![];
-        node_candidates = self.get_node_candidates(structure, parent_attribute, candidates);
+        node_candidates = self.get_node_candidates(structure, parent_item.0, candidates);
         // END STEP: Get the node candidates
 
         // BEGIN STEP: Check if we should stop because there is no more candidates
         if node_candidates.is_empty() {
             if let Some(node) = self.cache.get_node_mut(parent_index) {
                 node.value.set_as_leaf();
-                return (node.value.get_node_error(), ReturnCondition::None);
+                return (
+                    node.value.get_node_error(),
+                    ReturnCondition::None,
+                    HasIntersected::Yes,
+                );
             }
         }
         // END STEP: Check if we should stop because there is no more candidates
@@ -260,11 +280,15 @@ where
 
             // BEGIN STEP: Setup the first child node
             let mut item = (*child, first.branch);
+            itemset.insert(item);
 
             // TODO: Check if this is the best place to do this
-            let _ = structure.push(item);
-            itemset.insert(item);
-            let (is_new, child_index) = self.find_or_create_in_cache(structure, itemset);
+
+            let (is_new, child_index) = self.cache.find_or_create(itemset.iter());
+            if is_new {
+                let _ = structure.push(item);
+                self.init_data(structure, child_index);
+            }
 
             if let Some(child_node) = self.cache.get_node_mut(child_index) {
                 child_node.value.set_lower_bound(first.lower_bound);
@@ -276,28 +300,29 @@ where
                 structure,
                 depth + 1,
                 child_upper_bound,
-                *child,
+                item,
                 itemset,
                 &node_candidates,
                 child_index,
+                is_new,
                 &mut child_similarity_data,
             );
             let left_error = return_infos.0;
             // END STEP: Explore the first child node
 
-            // BEGIN STEP: Check if we should update similarity data
-            if let LowerBoundHeuristic::Similarity = self.constraints.lower_bound {
-                let _ = self.update_similarity_data(
-                    &mut child_similarity_data,
-                    structure,
-                    child_index,
-                    return_infos.1,
-                );
-            }
-            // END STEP: Check if we should update similarity data
+            // BEGIN STEP: Will backtrack if the node is new and update the similarity data if needed
 
-            structure.backtrack();
-            itemset.remove(&item);
+            self.reset_after_branching(
+                structure,
+                itemset,
+                is_new,
+                &item,
+                &return_infos,
+                child_index,
+                similarity_data,
+            );
+
+            // END STEP: will backtrack if the node is new and update the similarity data if needed
 
             // BEGIN STEP: If the error is too high, we don't need to explore the right part of the node
             if left_error as f64 >= child_upper_bound as f64 - second.lower_bound as f64 {
@@ -319,9 +344,13 @@ where
             // BEGIN STEP: Setup the second child node
             let right_upper_bound = child_upper_bound - left_error;
             let item = (*child, second.branch);
-            let _ = structure.push(item);
             itemset.insert(item);
-            let (_, child_index) = self.find_or_create_in_cache(structure, itemset);
+
+            let (is_new, child_index) = self.cache.find_or_create(itemset.iter());
+            if is_new {
+                let _ = structure.push(item);
+                self.init_data(structure, child_index);
+            }
 
             if let Some(child_node) = self.cache.get_node_mut(child_index) {
                 child_node.value.set_lower_bound(second.lower_bound);
@@ -333,28 +362,27 @@ where
                 structure,
                 depth + 1,
                 right_upper_bound,
-                *child,
+                item,
                 itemset,
                 &node_candidates,
                 child_index,
+                is_new,
                 similarity_data,
             );
             let right_error = return_infos.0;
             // END STEP: Explore the second child node
 
-            // BEGIN STEP: Check if we should update similarity data
-            if let LowerBoundHeuristic::Similarity = self.constraints.lower_bound {
-                let _ = self.update_similarity_data(
-                    &mut child_similarity_data,
-                    structure,
-                    child_index,
-                    return_infos.1,
-                );
-            }
-            // END STEP: Check if we should update similarity data
-
-            structure.backtrack();
-            itemset.remove(&item);
+            // BEGIN STEP: Will backtrack if the node is new and update the similarity data if needed
+            self.reset_after_branching(
+                structure,
+                itemset,
+                is_new,
+                &item,
+                &return_infos,
+                child_index,
+                similarity_data,
+            );
+            // END STEP: Will backtrack if the node is new and update the similarity data if needed
 
             if right_error == <usize>::MAX || left_error == <usize>::MAX {
                 continue;
@@ -383,7 +411,6 @@ where
         // BEGIN STEP: If the node error is still MAX, we need to update the lower bound
         if let Some(node) = self.cache.get_node_mut(parent_index) {
             if node.value.get_node_error() == <usize>::MAX {
-                // println!("Here 2");
                 node.value.set_lower_bound(max(
                     node.value.get_lower_bound(),
                     max(min_lower_bound, upper_bound),
@@ -391,6 +418,7 @@ where
                 return (
                     node.value.get_node_error(),
                     ReturnCondition::LowerBoundConstrained,
+                    HasIntersected::Yes,
                 );
             }
         }
@@ -401,6 +429,7 @@ where
                 .value
                 .get_node_error(),
             ReturnCondition::Done,
+            HasIntersected::Yes,
         );
         // END STEP: If the node error is still MAX, we need to update the lower bound
     }
@@ -428,24 +457,13 @@ where
         node_candidates
     }
 
-    fn find_or_create_in_cache(
-        &mut self,
-        structure: &mut RSparseBitsetStructure,
-        itemset: &mut BTreeSet<Item>,
-    ) -> (bool, Index) {
-        let (is_new, index) = self.cache.find_or_create(itemset.iter());
-
-        if is_new {
-            if let Some(node) = self.cache.get_node_mut(index) {
-                let postion = structure.get_position().clone();
-                let classes_support = structure.labels_support();
-                let (leaf_error, class) = Self::leaf_error(&classes_support);
-                node.value.set_leaf_error(leaf_error);
-                node.value.set_class(class)
-            }
+    fn init_data(&mut self, structure: &mut RSparseBitsetStructure, index: Index) {
+        if let Some(node) = self.cache.get_node_mut(index) {
+            let classes_support = structure.labels_support();
+            let (leaf_error, class) = Self::leaf_error(&classes_support);
+            node.value.set_leaf_error(leaf_error);
+            node.value.set_class(class)
         }
-
-        (is_new, index)
     }
 
     fn compute_lower_bounds(
@@ -505,8 +523,6 @@ where
                 itemset.remove(&(child, i));
             }
 
-            // println!("Lower bounds : {:?}", lower_bounds);
-
             if let LowerBoundHeuristic::Similarity = self.constraints.lower_bound {
                 let similarity_lower_bounds = self.compute_lower_bounds(
                     child,
@@ -525,7 +541,6 @@ where
             true => 1usize,
             false => 0,
         };
-        // println!("First item : {:?}", first_item);
 
         let second_item = (first_item + 1) % 2;
 
@@ -548,6 +563,43 @@ where
             lower_bound: second_lower_bound,
         };
         [first_data, second_data]
+    }
+
+    fn reset_after_branching(
+        &self,
+        structure: &mut RSparseBitsetStructure,
+        itemset: &mut BTreeSet<Item>,
+        is_new: bool,
+        item: &Item,
+        return_infos: &(usize, ReturnCondition, HasIntersected),
+        child_index: usize,
+        child_similarity_data: &mut SimilarDatasets<T>,
+    ) {
+        let has_intersected = match return_infos.2 {
+            HasIntersected::Yes => true,
+            HasIntersected::No => false,
+        };
+        itemset.remove(item);
+        if is_new || has_intersected {
+            if let LowerBoundHeuristic::Similarity = self.constraints.lower_bound {
+                let _ = self.update_similarity_data(
+                    child_similarity_data,
+                    structure,
+                    child_index,
+                    return_infos.1,
+                );
+            }
+            structure.backtrack();
+        } else if let LowerBoundHeuristic::Similarity = self.constraints.lower_bound {
+            structure.push(*item);
+            let _ = self.update_similarity_data(
+                child_similarity_data,
+                structure,
+                child_index,
+                return_infos.1,
+            );
+            structure.backtrack();
+        }
     }
 
     fn update_similarity_data(
@@ -591,12 +643,13 @@ where
         upper_bound: usize,
         itemset: &mut BTreeSet<Item>,
         depth: Depth,
-    ) -> (usize, ReturnCondition) {
+    ) -> (usize, ReturnCondition, HasIntersected) {
         if let Some(node) = self.cache.get_node(index) {
             if upper_bound < node.value.get_lower_bound() {
                 return (
                     node.value.get_node_error(),
                     ReturnCondition::LowerBoundConstrained,
+                    HasIntersected::Yes,
                 );
             }
         }
@@ -604,7 +657,11 @@ where
         let mut tree = LGDT::fit(structure, self.constraints.min_sup, depth, MurTree::fit);
         let error = LGDT::get_tree_error(&tree);
         self.stitch_to_cache(index, &tree, tree.get_root_index(), itemset);
-        (error, ReturnCondition::FromSpecializedAlgorithm)
+        (
+            error,
+            ReturnCondition::FromSpecializedAlgorithm,
+            HasIntersected::Yes,
+        )
     }
 
     fn stitch_to_cache(

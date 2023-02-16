@@ -160,7 +160,7 @@ fn solve_instance_dl85(
                     minsup,
                     max_depth,
                     <usize>::MAX,
-                    100,
+                    300,
                     *spec,
                     *lower_bound,
                     *branching_type,

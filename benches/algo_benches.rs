@@ -1,15 +1,15 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode};
-use perf_lgdt::algorithms::algorithm_trait::Algorithm;
-use perf_lgdt::algorithms::info_gain::InfoGain;
-use perf_lgdt::algorithms::lgdt::LGDT;
-use perf_lgdt::algorithms::murtree::MurTree;
-use perf_lgdt::dataset::binary_dataset::BinaryDataset;
-use perf_lgdt::dataset::data_trait::Dataset;
-use perf_lgdt::structures::bitsets_structure::BitsetStructure;
-use perf_lgdt::structures::horizontal_binary_structure::HorizontalBinaryStructure;
-use perf_lgdt::structures::raw_binary_structure::RawBinaryStructure;
-use perf_lgdt::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
-use perf_lgdt::structures::structure_trait::Structure;
+use pytrees::algorithms::algorithm_trait::Algorithm;
+use pytrees::algorithms::info_gain::InfoGain;
+use pytrees::algorithms::lgdt::LGDT;
+use pytrees::algorithms::murtree::MurTree;
+use pytrees::dataset::binary_dataset::BinaryDataset;
+use pytrees::dataset::data_trait::Dataset;
+use pytrees::structures::bitsets_structure::BitsetStructure;
+use pytrees::structures::horizontal_binary_structure::HorizontalBinaryStructure;
+use pytrees::structures::raw_binary_structure::RawBinaryStructure;
+use pytrees::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
+use pytrees::structures::structure_trait::Structure;
 
 pub fn anneal_horiz_benchmark(c: &mut Criterion) {
     let filename = "test_data/anneal.txt";

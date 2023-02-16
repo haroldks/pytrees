@@ -1,7 +1,37 @@
 import json
+from enum import IntEnum
+
 from sklearn.utils import check_array, check_X_y, assert_all_finite
 from sklearn.exceptions import NotFittedError
 from .exceptions import TreeNotFoundError, SearchFailedError
+
+
+class Specialization(IntEnum):
+    None_ = 0
+    MurTree = 1
+
+
+class LowerBound(IntEnum):
+    None_ = 0
+    Similarity = 1
+
+
+class Branching(IntEnum):
+    None_ = 0
+    Dynamic = 1
+
+
+class CacheInit(IntEnum):
+    None_ = 0
+    Dynamic = 1
+    FromUser = 2
+
+
+class Heuristic(IntEnum):
+    None_ = 0
+    InformationGain = 1
+    InformationGainRatio = 2
+    GiniIndex = 3
 
 
 class Predictor:

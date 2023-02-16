@@ -2,6 +2,8 @@ from pytrees.lgdt import LGDTClassifier
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+from pytrees.predictor import Specialization, LowerBound, Branching, CacheInit
+
 dataset = np.genfromtxt("data/raw/datasetsDL/anneal.txt", delimiter=" ")
 X, y = dataset[:, 1:], dataset[:, 0]
 
@@ -41,9 +43,10 @@ from pytrees.optimal import DL85Classifier
 clf = DL85Classifier(
     min_sup=1,
     max_depth=4,
-    specialization="murtree",
-    lower_bound="similarity",
-    branching="dynamic",
+    specialization=Specialization.None_,
+    lower_bound=LowerBound.None_,
+    branching=Branching.None_,
+    cache_init=CacheInit.Dynamic,
 )
 clf.fit(X, y)
 print(f"Train accuracy : {clf.accuracy_}")

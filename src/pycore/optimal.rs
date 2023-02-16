@@ -3,7 +3,8 @@ use pyo3::{pyclass, pymethods, pymodule, IntoPy, PyObject, PyResult, Python};
 
 use crate::algorithms::dl85::DL85;
 use crate::algorithms::dl85_utils::structs_enums::{
-    BranchingType, Constraints, LowerBoundHeuristic, SortHeuristic, Specialization, Statistics,
+    BranchingType, CacheInit, Constraints, LowerBoundHeuristic, SortHeuristic, Specialization,
+    Statistics,
 };
 use crate::dataset::binary_dataset::BinaryDataset;
 use crate::dataset::data_trait::Dataset;
@@ -31,11 +32,13 @@ impl Dl85InternalClassifier {
         max_depth: Depth,
         error: isize,
         time: isize,
-        specialization: &str,
-        lower_bound: &str,
-        branching_type: &str,
+        specialization: usize,
+        lower_bound: usize,
+        branching_type: usize,
         one_time_sort: bool,
-        heuristic: &str,
+        heuristic: usize,
+        cache_init: usize,
+        cache_init_size: usize,
     ) -> Self {
         let max_error = match error == -1 {
             true => <usize>::MAX,
@@ -48,29 +51,36 @@ impl Dl85InternalClassifier {
         };
 
         let specialization = match specialization {
-            "none" => Specialization::None,
-            "murtree" => Specialization::Murtree,
+            0 => Specialization::None,
+            1 => Specialization::Murtree,
             _ => panic!("Invalid specialization"),
         };
 
         let lower_bound = match lower_bound {
-            "none" => LowerBoundHeuristic::None,
-            "similarity" => LowerBoundHeuristic::Similarity,
+            0 => LowerBoundHeuristic::None,
+            1 => LowerBoundHeuristic::Similarity,
             _ => panic!("Invalid lower bound"),
         };
 
         let heuristic = match heuristic {
-            "info_gain" => SortHeuristic::InformationGain,
-            "info_gain_ratio" => SortHeuristic::InformationGainRatio,
-            "gini_index" => SortHeuristic::GiniIndex,
-            "no_heuristic" => SortHeuristic::None,
+            0 => SortHeuristic::None,
+            1 => SortHeuristic::InformationGain,
+            2 => SortHeuristic::InformationGainRatio,
+            3 => SortHeuristic::GiniIndex,
             _ => panic!("Invalid heuristic"),
         };
 
         let branching = match branching_type {
-            "none" => BranchingType::None,
-            "dynamic" => BranchingType::Dynamic,
+            0 => BranchingType::None,
+            1 => BranchingType::Dynamic,
             _ => panic!("Invalid branching type"),
+        };
+
+        let cache_init = match cache_init {
+            0 => CacheInit::Normal,
+            1 => CacheInit::WithMemoryDynamic,
+            2 => CacheInit::WithMemoryFromUser,
+            _ => panic!("Invalid cache init type"),
         };
 
         let constraints = Constraints {
@@ -82,6 +92,8 @@ impl Dl85InternalClassifier {
             specialization,
             lower_bound,
             branching,
+            cache_init,
+            cache_init_size,
         };
 
         let statistics = Statistics {
@@ -134,6 +146,8 @@ impl Dl85InternalClassifier {
             self.constraints.specialization,
             self.constraints.lower_bound,
             self.constraints.branching,
+            self.constraints.cache_init,
+            self.constraints.cache_init_size,
             self.constraints.one_time_sort,
             heuristic.as_mut(),
         );

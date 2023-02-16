@@ -46,7 +46,7 @@ impl GiniIndex {
         let left_classes_supports = structure
             .labels_support()
             .iter()
-            .map(|x| *x)
+            .copied()
             .collect::<Vec<Support>>();
         structure.backtrack();
 
@@ -118,7 +118,7 @@ trait Handler {
         let root_classes_support = structure
             .labels_support()
             .iter()
-            .map(|x| *x)
+            .copied()
             .collect::<Vec<Support>>();
         let parent_entropy = Self::compute_entropy(&root_classes_support);
         let mut candidates_sorted = vec![];
@@ -150,7 +150,7 @@ trait Handler {
         let left_classes_supports = structure
             .labels_support()
             .iter()
-            .map(|x| *x)
+            .copied()
             .collect::<Vec<Support>>();
         structure.backtrack();
 

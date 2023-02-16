@@ -1,5 +1,12 @@
 from sklearn.base import BaseEstimator, ClassifierMixin
-from pytrees.predictor import Predictor
+from pytrees.predictor import (
+    Predictor,
+    Specialization,
+    LowerBound,
+    Branching,
+    CacheInit,
+    Heuristic,
+)
 from pytrees_internal.optimal import Dl85InternalClassifier
 
 
@@ -10,11 +17,13 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         max_depth=1,
         max_error=-1,
         max_time=-1,
-        specialization="murtree",
-        lower_bound="similarity",
+        specialization=Specialization.MurTree,
+        lower_bound=LowerBound.Similarity,
         one_time_sort=True,
-        heuristic="no_heuristic",
-        branching="dynamic",
+        heuristic=Heuristic.None_,
+        branching=Branching.Dynamic,
+        cache_init=CacheInit.Dynamic,
+        cache_init_size=0,
     ):
         super().__init__()
         self.min_sup = min_sup
@@ -24,6 +33,8 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         self.specialization = specialization
         self.lower_bound = lower_bound
         self.branching = branching
+        self.cache_init = cache_init
+        self.cache_init_size = cache_init_size
         self.one_time_sort = one_time_sort
         self.heuristic = heuristic
 
@@ -37,6 +48,8 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
             branching,
             one_time_sort,
             heuristic,
+            cache_init,
+            cache_init_size,
         )
 
         self.set_classifier(clf)

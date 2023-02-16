@@ -15,6 +15,8 @@ pub(crate) struct Constraints {
     pub specialization: Specialization,
     pub lower_bound: LowerBoundHeuristic,
     pub branching: BranchingType,
+    pub cache_init: CacheInit,
+    pub cache_init_size: usize,
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub(crate) struct Branching {
@@ -82,6 +84,13 @@ pub enum ReturnCondition {
 pub enum BranchingType {
     Dynamic,
     None,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum CacheInit {
+    Normal,
+    WithMemoryDynamic,
+    WithMemoryFromUser,
 }
 
 // End: Enums used in the algorithm

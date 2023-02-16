@@ -2,8 +2,8 @@ use crate::algorithms::algorithm_trait::{Algorithm, Basic};
 use crate::algorithms::dl85_utils::slb::{SimilarDatasets, Similarity};
 use crate::algorithms::dl85_utils::stop_conditions::StopConditions;
 use crate::algorithms::dl85_utils::structs_enums::{
-    Branching, BranchingType, Constraints, HasIntersected, LowerBoundHeuristic, ReturnCondition,
-    Specialization, Statistics,
+    Branching, BranchingType, CacheInit, Constraints, HasIntersected, LowerBoundHeuristic,
+    ReturnCondition, Specialization, Statistics,
 };
 use crate::algorithms::lgdt::LGDT;
 use crate::algorithms::murtree::MurTree;
@@ -47,6 +47,8 @@ where
         specialization: Specialization,
         lower_bound: LowerBoundHeuristic,
         branching: BranchingType,
+        cache_init: CacheInit,
+        cache_init_size: usize,
         one_time_sort: bool,
         heuristic: &'heur mut H,
     ) -> Self {
@@ -59,11 +61,13 @@ where
             specialization,
             lower_bound,
             branching,
+            cache_init,
+            cache_init_size,
         };
         Self {
             constraints,
             heuristic,
-            cache: Trie::new(),
+            cache: Trie::default(),
             stop_conditions: StopConditions::default(),
             statistics: Statistics {
                 num_attributes: 0,
@@ -88,7 +92,16 @@ where
         // END STEP : Setup everything in the statistics structures
 
         // BEGIN STEP: Setup the cache
-        self.cache = Trie::with_capacity(structure.num_attributes(), self.constraints.max_depth);
+
+        self.cache = match self.constraints.cache_init {
+            CacheInit::Normal => Trie::default(),
+            CacheInit::WithMemoryDynamic => {
+                Trie::with_capacity(structure.num_attributes(), self.constraints.max_depth)
+            }
+            CacheInit::WithMemoryFromUser => {
+                Trie::from_user_memory(self.constraints.cache_init_size)
+            }
+        };
         // END STEP: Setup the cache
 
         // BEGIN STEP: Load candidates
@@ -112,7 +125,7 @@ where
 
         // BEGIN STEP: Setup the root
         let mut root_data = T::new();
-        let root_leaf_error = Self::leaf_error(&structure.labels_support());
+        let root_leaf_error = Self::leaf_error(structure.labels_support());
         root_data.set_node_error(root_leaf_error.0);
         root_data.set_leaf_error(root_leaf_error.0);
         let root = TrieNode::new(root_data);
@@ -155,7 +168,7 @@ where
         upper_bound: usize,
         parent_item: Item,
         itemset: &mut BTreeSet<Item>,
-        candidates: &Vec<usize>,
+        candidates: &[usize],
         parent_index: Index,
         parent_is_new: bool,
         similarity_data: &mut SimilarDatasets<T>,
@@ -165,8 +178,6 @@ where
         let mut child_upper_bound = upper_bound;
         let current_support = structure.support();
 
-        // println!("Itemset: {:?}", itemset);
-        // println!("Structure: {:?}", structure.get_position());
         // BEGIN STEP: Check if we should stop
         if let Some(node) = self.cache.get_node_mut(parent_index) {
             let return_condition = self.stop_conditions.check(
@@ -460,7 +471,7 @@ where
     fn init_data(&mut self, structure: &mut RSparseBitsetStructure, index: Index) {
         if let Some(node) = self.cache.get_node_mut(index) {
             let classes_support = structure.labels_support();
-            let (leaf_error, class) = Self::leaf_error(&classes_support);
+            let (leaf_error, class) = Self::leaf_error(classes_support);
             node.value.set_leaf_error(leaf_error);
             node.value.set_class(class)
         }

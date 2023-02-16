@@ -1,6 +1,9 @@
 use crate::structures::structures_types::{Attribute, Depth, Index, Item, MAX_INT};
 use nohash_hasher::BuildNoHashHasher;
 use std::collections::{BTreeSet, HashMap};
+use std::slice::Iter;
+
+static MEMORY_SIZE: usize = 2_000_000_000; // 2GB
 
 pub trait DataTrait {
     fn new() -> Self;
@@ -113,11 +116,13 @@ impl DataTrait for Data {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct TrieNode<T> {
+    // TODO: Add parent index
     pub item: Item,
     pub value: T,
     pub index: Index,
+    pub node_children: Vec<Index>,
 }
 
 impl<T> TrieNode<T> {
@@ -126,48 +131,14 @@ impl<T> TrieNode<T> {
             item: (MAX_INT, 0),
             value,
             index: 0,
+            node_children: Vec::new(),
         }
     }
 }
 
-// Begin: Iterator On Node Children
-
-struct ChildrenIter<'a, It> {
-    cache: &'a Trie<It>,
-    to_explore: &'a Vec<usize>,
-    count: usize,
-    limit: usize,
-}
-
-impl<'a, It> ChildrenIter<'a, It> {
-    pub fn new(cache: &'a Trie<It>, to_explore: &'a Vec<usize>) -> Self {
-        Self {
-            cache,
-            to_explore,
-            count: 0,
-            limit: to_explore.len(),
-        }
-    }
-}
-
-impl<'a, It> Iterator for ChildrenIter<'a, It> {
-    type Item = &'a TrieNode<It>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.count < self.limit {
-            let index = self.to_explore[self.count];
-            self.count += 1;
-            return Some(&self.cache.cache[index]);
-        }
-        None
-    }
-}
-
-// End: Iterator On Node Children
 #[derive(Debug)]
 pub struct Trie<T> {
     cache: Vec<TrieNode<T>>,
-    children: HashMap<usize, Vec<usize>, BuildNoHashHasher<usize>>,
 }
 
 impl<T: DataTrait> Default for Trie<T> {
@@ -180,16 +151,28 @@ impl<T: DataTrait> Trie<T> {
     pub fn new() -> Self {
         Self {
             cache: Vec::new(), // TODO : Find a better way to set the capacity
-            children: Default::default(),
         }
     }
 
     // Start :Implement a better way to set the capacity
 
-    pub fn with_capacity(features: usize, depth: usize) -> Self {
+    pub fn from_user_memory(size: usize) -> Self {
+        if size > MEMORY_SIZE {
+            panic!("Memory size is too big! Only 2GB is allowed to start with.");
+        }
+
+        let vec_size = size / std::mem::size_of::<TrieNode<T>>();
+
         Self {
-            cache: Vec::with_capacity(Self::cache_size(features, depth)),
-            children: HashMap::with_capacity_and_hasher(features, BuildNoHashHasher::default()),
+            cache: Vec::with_capacity(vec_size),
+        }
+    }
+
+    pub fn with_capacity(features: usize, depth: usize) -> Self {
+        let cache_size = Self::cache_size(features, depth);
+
+        Self {
+            cache: Vec::with_capacity(cache_size),
         }
     }
 
@@ -206,9 +189,13 @@ impl<T: DataTrait> Trie<T> {
         for i in 1..depth {
             size += Self::count_combinations(features as u64, i as u64) * 2u64.pow(i as u32);
         }
-        // if size > 20_000_000 {
-        //     return size as usize / 2;
-        // }
+
+        let used_bytes = size * std::mem::size_of::<TrieNode<T>>() as u64;
+
+        if used_bytes > MEMORY_SIZE as u64 {
+            return MEMORY_SIZE / std::mem::size_of::<TrieNode<T>>();
+        }
+
         size as usize
     }
 
@@ -259,16 +246,14 @@ impl<T: DataTrait> Trie<T> {
     // End : Index based methods
 
     // NodeIndex : Get Iterator
-    fn children(&self, index: Index) -> Option<ChildrenIter<T>> {
-        let node_children = self.children.get(&index);
-        node_children.map(|children| ChildrenIter::new(self, children))
+    fn children(&self, index: Index) -> Iter<'_, Index> {
+        coz::scope!("children");
+        self.cache[index].node_children.iter()
     }
 
     fn add_child(&mut self, parent: Index, child_index: Index) {
-        self.children
-            .entry(parent)
-            .and_modify(|node_children| node_children.push(child_index))
-            .or_insert_with(|| vec![child_index]);
+        coz::scope!("add_child");
+        self.cache[parent].node_children.push(child_index);
     }
 
     // Start: Cache Exploration based on Itemset
@@ -276,23 +261,17 @@ impl<T: DataTrait> Trie<T> {
         let mut index = self.get_root_index();
         for item in itemset {
             let children = self.children(index);
-            match children {
-                None => {
-                    return None;
+            let mut found = false;
+            for child in children {
+                let node = self.get_node(*child).unwrap();
+                if node.item == *item {
+                    index = *child;
+                    found = true;
+                    break;
                 }
-                Some(iterator) => {
-                    let mut found = false;
-                    for child in iterator {
-                        if child.item == *item {
-                            index = child.index;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if !found {
-                        return None;
-                    }
-                }
+            }
+            if !found {
+                return None;
             }
         }
         Some(index)
@@ -302,32 +281,27 @@ impl<T: DataTrait> Trie<T> {
         &mut self,
         itemset: I,
     ) -> (bool, Index) {
+        coz::scope!("find_or_create");
         let mut index = self.get_root_index();
         let mut new = false;
         for item in itemset {
             let children = self.children(index);
-            match children {
-                None => {
-                    new = true;
-                    index = self.create_cache_entry(index, item);
-                }
-                Some(iterator) => {
-                    let mut found = false;
-                    for child in iterator {
-                        if child.item == *item {
-                            index = child.index;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if !found {
-                        new = true;
-                        // TODO : Check if possible to not do this
-                        index = self.create_cache_entry(index, item);
-                    }
+            let mut found = false;
+            for child in children {
+                let node = self.get_node(*child).unwrap();
+                if node.item == *item {
+                    index = *child;
+                    found = true;
+                    break;
                 }
             }
+            if !found {
+                new = true;
+                // TODO : Check if possible to not do this
+                index = self.create_cache_entry(index, item);
+            }
         }
+
         (new, index)
     }
 
@@ -365,7 +339,6 @@ mod trie_test {
         let value = Data::new();
         let node = TrieNode::new(value);
 
-        cache.add_node(0, node);
         cache.add_node(0, node);
 
         let child_iterator = cache.children(0);

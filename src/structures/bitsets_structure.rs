@@ -70,7 +70,7 @@ impl<'data> Structure for BitsetStructure<'data> {
             }
             return &self.labels_support;
         }
-        return &self.labels_support;
+        &self.labels_support
     }
 
     fn support(&mut self) -> Support {
@@ -104,7 +104,6 @@ impl<'data> Structure for BitsetStructure<'data> {
             self.state.pop();
             self.support = Support::MAX;
             self.labels_support.clear();
-            // self.support(); // TODO: check if this is necessary
         }
     }
 
@@ -193,8 +192,6 @@ impl<'data> BitsetStructure<'data> {
             position: Vec::with_capacity(num_attributes),
             state,
         };
-
-        // structure.support();
         structure
     }
 

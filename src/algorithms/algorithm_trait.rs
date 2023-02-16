@@ -200,8 +200,8 @@ where {
     {
         let leaf_index = Self::create_child(tree, parent, is_left);
         let classes_support = structure.labels_support();
-        let top_class = Self::get_top_class(&classes_support);
-        let error = Self::get_misclassification_error(&classes_support);
+        let top_class = Self::get_top_class(classes_support);
+        let error = Self::get_misclassification_error(classes_support);
 
         if let Some(leaf) = tree.get_node_mut(leaf_index) {
             leaf.value.error = error;

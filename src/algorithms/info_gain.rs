@@ -40,8 +40,8 @@ impl Algorithm for InfoGain {
         for branch in [0usize, 1].iter() {
             structure.push((candidates[0], *branch));
             let classes_support = structure.labels_support();
-            let class = Self::get_top_class(&classes_support);
-            let error = Self::get_misclassification_error(&classes_support);
+            let class = Self::get_top_class(classes_support);
+            let error = Self::get_misclassification_error(classes_support);
 
             let index = match *branch == 0 {
                 true => left_index,
@@ -80,7 +80,7 @@ impl Algorithm for InfoGain {
         let classes_support = structure.labels_support();
         let support = classes_support.iter().sum::<usize>();
 
-        let parent_entropy = Self::compute_entropy(&classes_support);
+        let parent_entropy = Self::compute_entropy(classes_support);
 
         if parent_entropy.approx_eq(
             0.,
@@ -122,7 +122,7 @@ impl Algorithm for InfoGain {
 
                     left_leaves = Self::get_depth_two_leaves_stats(
                         &matrix,
-                        &classes_support,
+                        classes_support,
                         (i, *val),
                         (j, 0),
                     );
@@ -137,7 +137,7 @@ impl Algorithm for InfoGain {
 
                     right_leaves = Self::get_depth_two_leaves_stats(
                         &matrix,
-                        &classes_support,
+                        classes_support,
                         (i, *val),
                         (j, 1),
                     );
@@ -216,8 +216,8 @@ impl InfoGain {
         let mut root_classes_support = structure
             .labels_support()
             .iter()
-            .map(|x| *x)
-            .collect::<Vec<Support>>();
+            .copied()
+            .collect::<Vec<usize>>();
 
         let parent_entropy = Self::compute_entropy(&root_classes_support);
         let mut candidates_sorted = vec![];
@@ -253,7 +253,7 @@ impl InfoGain {
         let left_classes_supports = structure
             .labels_support()
             .iter()
-            .map(|x| *x)
+            .copied()
             .collect::<Vec<Support>>();
         structure.backtrack();
 

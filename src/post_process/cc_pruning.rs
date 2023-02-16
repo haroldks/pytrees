@@ -126,8 +126,8 @@ impl CostComplexityPruning {
             node.right = 0;
             node.value.test = None;
             let classes_supports = structure.labels_support();
-            node.value.error = Self::get_misclassification_error(&classes_supports);
-            node.value.out = Some(Self::get_top_class(&classes_supports));
+            node.value.error = Self::get_misclassification_error(classes_supports);
+            node.value.out = Some(Self::get_top_class(classes_supports));
         }
         node_tree
     }

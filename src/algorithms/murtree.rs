@@ -28,14 +28,14 @@ impl Algorithm for MurTree {
         for candidate in candidates.iter() {
             structure.push((*candidate, 0));
             let classes_support = structure.labels_support();
-            let left_class = Self::get_top_class(&classes_support);
-            let left_error = Self::get_misclassification_error(&classes_support);
+            let left_class = Self::get_top_class(classes_support);
+            let left_error = Self::get_misclassification_error(classes_support);
             structure.backtrack();
 
             structure.push((*candidate, 1));
             let classes_support = structure.labels_support();
-            let right_class = Self::get_top_class(&classes_support);
-            let right_error = Self::get_misclassification_error(&classes_support);
+            let right_class = Self::get_top_class(classes_support);
+            let right_error = Self::get_misclassification_error(classes_support);
             structure.backtrack();
 
             let error = left_error + right_error;
@@ -82,7 +82,7 @@ impl Algorithm for MurTree {
         let classes_support = structure
             .labels_support()
             .iter()
-            .map(|x| *x)
+            .copied()
             .collect::<Vec<Support>>();
         let support = structure.get_support();
 

@@ -73,7 +73,6 @@ impl<'data> Structure for RawBinaryStructure<'data> {
             self.state.pop();
             self.support = Support::MAX;
             self.labels_support.clear();
-            // self.support();
         }
     }
 

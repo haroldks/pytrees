@@ -53,6 +53,7 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     }
 
     fn labels_support(&mut self) -> &[Support] {
+        coz::scope!("labels_support");
         if !self.labels_support.is_empty() {
             return &self.labels_support;
         }
@@ -131,6 +132,7 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     }
 
     fn backtrack(&mut self) {
+        coz::scope!("backtrack");
         // TODO: Remove the support computation
         if !self.position.is_empty() {
             self.position.pop();
@@ -245,7 +247,7 @@ impl<'data> RSparseBitsetStructure<'data> {
     }
 
     fn pushing(&mut self, item: Item) {
-        // TODO: Directly compute the support here
+        coz::scope!("pushing");
         self.support = 0;
         self.labels_support.clear();
         for _ in 0..self.num_labels {
@@ -281,8 +283,6 @@ impl<'data> RSparseBitsetStructure<'data> {
                                 let zero_count = (label_val & word).count_ones() as Support;
                                 self.labels_support[0] += zero_count;
                                 self.labels_support[1] += (word_count - zero_count);
-                                //  println!("Wtf {}, {} {}",word_count,  (label_val & word).count_ones() as Support, word_count - (label_val & word).count_ones() as Support);
-                                // println!("Label support: {:?}", self.labels_support);
                             } else {
                                 for j in 0..self.num_labels {
                                     let label_val = &self.inputs.targets[j][cursor];

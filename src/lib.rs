@@ -31,7 +31,7 @@ use pyo3::{pyclass, pymodule, wrap_pymodule, IntoPy, PyObject, PyResult, Python}
 extern crate core;
 pub mod algorithms;
 pub mod dataset;
-mod heuristics;
+pub mod heuristics;
 mod post_process;
 mod pycore;
 pub mod structures;

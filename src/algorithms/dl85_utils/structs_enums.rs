@@ -27,7 +27,7 @@ pub(crate) struct Branching {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Statistics {
     pub(crate) cache_size: usize,
-    pub(crate) tree_error: usize,
+    pub tree_error: usize,
     pub(crate) duration: Duration,
     pub(crate) num_attributes: usize,
     pub(crate) num_samples: usize,

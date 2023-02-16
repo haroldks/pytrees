@@ -814,7 +814,7 @@ where
 mod dl85_test {
     use crate::algorithms::dl85::DL85;
     use crate::algorithms::dl85_utils::structs_enums::{
-        BranchingType, LowerBoundHeuristic, Specialization,
+        BranchingType, CacheInit, LowerBoundHeuristic, Specialization,
     };
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
@@ -839,6 +839,8 @@ mod dl85_test {
             Specialization::None,
             LowerBoundHeuristic::None,
             BranchingType::Dynamic,
+            CacheInit::Normal,
+            0,
             false,
             heuristic.as_mut(),
         );

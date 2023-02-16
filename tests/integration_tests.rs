@@ -1,17 +1,23 @@
 use paste::paste;
-use perf_lgdt::algorithms::algorithm_trait::{Algorithm, Basic};
-use perf_lgdt::algorithms::idk::IDK;
-use perf_lgdt::algorithms::info_gain::InfoGain;
-use perf_lgdt::algorithms::lgdt::LGDT;
-use perf_lgdt::algorithms::murtree::MurTree;
-use perf_lgdt::dataset::binary_dataset::BinaryDataset;
-use perf_lgdt::dataset::data_trait::Dataset;
-use perf_lgdt::structures::bitsets_structure::BitsetStructure;
-use perf_lgdt::structures::horizontal_binary_structure::HorizontalBinaryStructure;
-use perf_lgdt::structures::raw_binary_structure::RawBinaryStructure;
-use perf_lgdt::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
-use perf_lgdt::structures::structure_trait::Structure;
-use perf_lgdt::structures::structures_types::{Depth, Support};
+use pytrees::algorithms::algorithm_trait::{Algorithm, Basic};
+use pytrees::algorithms::dl85::DL85;
+use pytrees::algorithms::dl85_utils::structs_enums::{
+    BranchingType, CacheInit, LowerBoundHeuristic, Specialization,
+};
+use pytrees::algorithms::idk::IDK;
+use pytrees::algorithms::info_gain::InfoGain;
+use pytrees::algorithms::lgdt::LGDT;
+use pytrees::algorithms::murtree::MurTree;
+use pytrees::dataset::binary_dataset::BinaryDataset;
+use pytrees::dataset::data_trait::Dataset;
+use pytrees::heuristics::{Heuristic, NoHeuristic};
+use pytrees::structures::bitsets_structure::BitsetStructure;
+use pytrees::structures::caching::trie::Data;
+use pytrees::structures::horizontal_binary_structure::HorizontalBinaryStructure;
+use pytrees::structures::raw_binary_structure::RawBinaryStructure;
+use pytrees::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
+use pytrees::structures::structure_trait::Structure;
+use pytrees::structures::structures_types::{Depth, Support};
 
 macro_rules! integration_tests_lgdt {
     ($($name:ident: $minsup:expr, $depth:expr, $algo:expr, $value:expr;)*) => {
@@ -94,6 +100,25 @@ macro_rules! integration_tests_idk {
     }
 }
 
+macro_rules! integration_tests_dl85 {
+    ($($name:ident: $minsup:expr, $maxdepth:expr, $value:expr;)*) => {
+        $(
+            paste!{
+                 #[test]
+                 fn [<dl85_ $name _minsup_ $minsup _maxdepth_ $maxdepth >]() {
+                    let data = BinaryDataset::load(&format!("test_data/{}.txt", stringify!($name)), false, 0.0);
+                    let sparse_data = RSparseBitsetStructure::format_input_data(&data);
+                    let mut structure = RSparseBitsetStructure::new(&sparse_data);
+                    for error in solve_instance_dl85(&mut structure, $minsup, $maxdepth) {
+                        assert_eq!(error, $value);
+                    }
+                }
+
+            }
+        )*
+    }
+}
+
 fn solve_instance_lgdt<S>(structure: &mut S, minsup: Support, depth: Depth, algo: &str) -> usize
 where
     S: Structure,
@@ -114,6 +139,44 @@ where
         false => IDK::fit(structure, minsup, InfoGain::fit),
     };
     LGDT::get_tree_error(&tree)
+}
+
+fn solve_instance_dl85(
+    structure: &mut RSparseBitsetStructure,
+    minsup: Support,
+    max_depth: Depth,
+) -> Vec<usize> {
+    let mut heuristic: Box<dyn Heuristic> = Box::new(NoHeuristic::default());
+    let mut errors = vec![];
+
+    let specializations = vec![Specialization::None, Specialization::Murtree];
+    let lower_bounds = vec![LowerBoundHeuristic::None, LowerBoundHeuristic::Similarity];
+    let branching_types = vec![BranchingType::None, BranchingType::Dynamic];
+
+    for spec in specializations.iter() {
+        for lower_bound in lower_bounds.iter() {
+            for branching_type in branching_types.iter() {
+                let mut algo: DL85<'_, _, Data> = DL85::new(
+                    minsup,
+                    max_depth,
+                    <usize>::MAX,
+                    100,
+                    *spec,
+                    *lower_bound,
+                    *branching_type,
+                    CacheInit::WithMemoryDynamic,
+                    0,
+                    true,
+                    heuristic.as_mut(),
+                );
+                algo.fit(structure);
+                errors.push(algo.statistics.tree_error);
+                structure.reset();
+            }
+        }
+    }
+
+    errors
 }
 
 integration_tests_lgdt! {
@@ -140,4 +203,9 @@ integration_tests_idk! {
     anneal: 1, "murtree", 34;
     mushroom: 1, "infogain", 0;
     mushroom: 1, "murtree", 0;
+}
+
+integration_tests_dl85! {
+    anneal: 1, 2, 137;
+    anneal: 1, 3, 112;
 }

@@ -11,24 +11,28 @@ from pytrees.predictor import (
 from pytrees_internal.optimal import Dl85InternalClassifier
 
 
-class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
+class LDSDL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
     def __init__(
         self,
         min_sup=1,
         max_depth=1,
+        discrepancy_budget=-1,
+        discrepancy_strategy=DiscrepancyStrategy.Incremental,
         max_error=-1,
         max_time=-1,
-        specialization=Specialization.MurTree,
-        lower_bound=LowerBound.Similarity,
-        one_time_sort=True,
+        specialization=Specialization.None_,
+        lower_bound=LowerBound.None_,
+        one_time_sort=False,
         heuristic=Heuristic.None_,
-        branching=Branching.Dynamic,
+        branching=Branching.None_,
         cache_init=CacheInit.Dynamic,
         cache_init_size=0,
     ):
         super().__init__()
         self.min_sup = min_sup
         self.max_depth = max_depth
+        self.discrepancy_budget = discrepancy_budget
+        self.discrepancy_strategy = discrepancy_strategy
         self.max_error = max_error
         self.max_time = max_time
         self.specialization = specialization
@@ -42,8 +46,8 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         clf = Dl85InternalClassifier(
             min_sup,
             max_depth,
-            0,
-            DiscrepancyStrategy.None_,
+            discrepancy_budget,
+            discrepancy_strategy,
             max_error,
             max_time,
             specialization,

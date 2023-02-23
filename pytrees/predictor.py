@@ -1,4 +1,5 @@
 import json
+import uuid
 from enum import IntEnum
 
 from sklearn.utils import check_array, check_X_y, assert_all_finite
@@ -32,6 +33,12 @@ class Heuristic(IntEnum):
     InformationGain = 1
     InformationGainRatio = 2
     GiniIndex = 3
+
+
+class DiscrepancyStrategy(IntEnum):
+    None_ = (0,)
+    Incremental = (1,)
+    Double = (2,)
 
 
 class Predictor:
@@ -157,3 +164,79 @@ class Predictor:
             else:
                 node = self.tree_["tree"][node["left"]]
         return node["value"]["out"]
+
+    def get_dot_body_rec(self, node, parent=None, left=False):
+        gstring = ""
+        id = str(uuid.uuid4())
+        id = id.replace("-", "_")
+
+        if node["right"] == node["left"]:
+            gstring += (
+                "leaf_"
+                + id
+                + ' [label="{{class|'
+                + str(node["value"]["out"])
+                + "}|{error|"
+                + str(node["value"]["error"])
+                + '}}"];\n'
+            )
+            gstring += (
+                "node_"
+                + parent
+                + " -> leaf_"
+                + id
+                + " [label="
+                + str(int(left))
+                + "];\n"
+            )
+        else:
+            gstring += (
+                "node_"
+                + id
+                + ' [label="{{feat|'
+                + str(node["value"]["test"])
+                + '}}"];\n'
+            )
+            gstring += (
+                "node_"
+                + parent
+                + " -> node_"
+                + id
+                + " [label="
+                + str(int(left))
+                + "];\n"
+            )
+            gstring += self.get_dot_body_rec(
+                self.tree_["tree"][node["left"]], id, left=True
+            )
+            gstring += self.get_dot_body_rec(
+                self.tree_["tree"][node["right"]], id, left=False
+            )
+        return gstring
+
+    def export_to_graphviz_dot(self):
+        gstring = "digraph Tree { \n" "graph [ranksep=0]; \n" "node [shape=record]; \n"
+        id = str(uuid.uuid4())
+        id = id.replace("-", "_")
+
+        root = self.tree_["tree"][0]
+        print(root)
+        feat = root["value"]["test"]
+        if feat is not None:
+            gstring += (
+                "node_"
+                + id
+                + ' [label="{{feat|'
+                + str(feat)
+                + "}|{error|"
+                + str(self.tree_error_)
+                + '}}"];\n'
+            )
+            gstring += self.get_dot_body_rec(
+                self.tree_["tree"][root["left"]], parent=id
+            )
+            gstring += self.get_dot_body_rec(
+                self.tree_["tree"][root["right"]], parent=id
+            )
+        gstring += "}"
+        return gstring

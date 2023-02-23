@@ -17,7 +17,6 @@ mod post_process;
 mod structures;
 
 fn main() {
-    coz::thread_init();
     let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
     let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
     let mut structure = RSparseBitsetStructure::new(&bitset_data);

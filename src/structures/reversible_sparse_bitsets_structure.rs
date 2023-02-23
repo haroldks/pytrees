@@ -131,7 +131,6 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     }
 
     fn backtrack(&mut self) {
-        coz::scope!("backtrack");
         // TODO: Remove the support computation
         if !self.position.is_empty() {
             self.position.pop();
@@ -246,7 +245,6 @@ impl<'data> RSparseBitsetStructure<'data> {
     }
 
     fn pushing(&mut self, item: Item) {
-        coz::scope!("pushing");
         self.support = 0;
         self.labels_support.clear();
         for _ in 0..self.num_labels {

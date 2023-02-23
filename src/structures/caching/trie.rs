@@ -247,12 +247,10 @@ impl<T: DataTrait> Trie<T> {
 
     // NodeIndex : Get Iterator
     fn children(&self, index: Index) -> Iter<'_, Index> {
-        coz::scope!("children");
         self.cache[index].node_children.iter()
     }
 
     fn add_child(&mut self, parent: Index, child_index: Index) {
-        coz::scope!("add_child");
         self.cache[parent].node_children.push(child_index);
     }
 
@@ -263,6 +261,7 @@ impl<T: DataTrait> Trie<T> {
             let children = self.children(index);
             let mut found = false;
             for child in children {
+                // TODO : Move it to a method
                 let node = self.get_node(*child).unwrap();
                 if node.item == *item {
                     index = *child;
@@ -281,7 +280,6 @@ impl<T: DataTrait> Trie<T> {
         &mut self,
         itemset: I,
     ) -> (bool, Index) {
-        coz::scope!("find_or_create");
         let mut index = self.get_root_index();
         let mut new = false;
         for item in itemset {

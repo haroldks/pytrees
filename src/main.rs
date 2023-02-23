@@ -1,7 +1,7 @@
 #![allow(unused)]
 use crate::algorithms::dl85::DL85;
 use crate::algorithms::dl85_utils::structs_enums::{
-    BranchingType, CacheInit, LowerBoundHeuristic, Specialization,
+    BranchingType, CacheInit, DiscrepancyStrategy, LowerBoundHeuristic, Specialization,
 };
 use crate::dataset::binary_dataset::BinaryDataset;
 use crate::dataset::data_trait::Dataset;

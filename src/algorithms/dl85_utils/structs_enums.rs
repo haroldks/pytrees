@@ -17,6 +17,8 @@ pub(crate) struct Constraints {
     pub branching: BranchingType,
     pub cache_init: CacheInit,
     pub cache_init_size: usize,
+    pub discrepancy_budget: usize,
+    pub discrepancy_strategy: DiscrepancyStrategy,
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub(crate) struct Branching {
@@ -91,6 +93,13 @@ pub enum CacheInit {
     Normal,
     WithMemoryDynamic,
     WithMemoryFromUser,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum DiscrepancyStrategy {
+    None,
+    Incremental,
+    Double,
 }
 
 // End: Enums used in the algorithm

@@ -21,6 +21,8 @@ pub trait DataTrait {
     fn to_leaf(&mut self);
     fn is_leaf(&self) -> bool;
     fn set_as_leaf(&mut self);
+    fn set_discrepancy(&mut self, discrepancy: usize);
+    fn get_discrepancy(&self) -> usize;
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -28,6 +30,7 @@ pub struct Data {
     // TODO: Should use float ?
     pub test: Attribute,
     pub depth: Depth,
+    pub current_discrepancy: usize,
     pub error: usize,
     pub error_as_leaf: usize,
     pub lower_bound: usize,
@@ -47,6 +50,7 @@ impl DataTrait for Data {
         Self {
             test: MAX_INT,
             depth: 0,
+            current_discrepancy: 0,
             error: MAX_INT,
             error_as_leaf: MAX_INT,
             lower_bound: 0,
@@ -113,6 +117,14 @@ impl DataTrait for Data {
     fn set_as_leaf(&mut self) {
         self.error = self.error_as_leaf;
         self.is_leaf = true;
+    }
+
+    fn set_discrepancy(&mut self, discrepancy: usize) {
+        self.current_discrepancy = discrepancy;
+    }
+
+    fn get_discrepancy(&self) -> usize {
+        self.current_discrepancy
     }
 }
 

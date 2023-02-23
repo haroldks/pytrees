@@ -129,4 +129,46 @@ where
             false => false,
         }
     }
+
+    pub fn check_using_discrepancy(
+        &self,
+        node: &mut TrieNode<T>,
+        support: Support,
+        min_sup: Support,
+        current_depth: Depth,
+        max_depth: Depth,
+        current_time: Duration,
+        max_time: usize,
+        upper_bound: usize,
+        discrepancy: usize,
+        max_discrepancy: usize,
+    ) -> (bool, ReturnCondition) {
+        if self.time_limit_reached(current_time, max_time, upper_bound, node) {
+            node.value.set_discrepancy(discrepancy);
+            return (true, ReturnCondition::TimeLimitReached);
+        }
+
+        if self.max_depth_reached(current_depth, max_depth, upper_bound, node) {
+            node.value.set_discrepancy(discrepancy);
+            return (true, ReturnCondition::MaxDepthReached);
+        }
+
+        if self.not_enough_support(support, min_sup, upper_bound, node) {
+            node.value.set_discrepancy(discrepancy);
+            return (true, ReturnCondition::NotEnoughSupport);
+        }
+
+        if self.pure_node(upper_bound, node) {
+            node.value.set_discrepancy(discrepancy);
+            return (true, ReturnCondition::PureNode);
+        }
+        if node.value.get_discrepancy() >= max_discrepancy
+            && upper_bound <= node.value.get_lower_bound()
+        {
+            node.value.set_as_leaf();
+            return (true, ReturnCondition::PureNode); // TODO: Change this to a new enum
+        }
+
+        (false, ReturnCondition::None)
+    }
 }

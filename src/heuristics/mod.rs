@@ -21,8 +21,7 @@ pub struct GiniIndex;
 
 impl Heuristic for GiniIndex {
     fn compute(&self, structure: &mut DataStructure, candidates: &mut Vec<Attribute>) {
-        let mut root_classes_support = [];
-        root_classes_support.copy_from_slice(structure.labels_support());
+        let mut root_classes_support = structure.labels_support().to_vec();
         let mut candidates_sorted = vec![];
         for attribute in candidates.iter() {
             let gini = Self::gini_index(*attribute, structure, &root_classes_support);
@@ -43,11 +42,7 @@ impl GiniIndex {
         root_classes_support: &[usize],
     ) -> f64 {
         let _ = structure.push((attribute, 0));
-        let left_classes_supports = structure
-            .labels_support()
-            .iter()
-            .copied()
-            .collect::<Vec<Support>>();
+        let left_classes_supports = structure.labels_support().to_vec();
         structure.backtrack();
 
         let right_classes_support = root_classes_support
@@ -115,11 +110,7 @@ trait Handler {
         attributes: &mut Vec<Attribute>,
         ratio: bool,
     ) {
-        let root_classes_support = structure
-            .labels_support()
-            .iter()
-            .copied()
-            .collect::<Vec<Support>>();
+        let root_classes_support = structure.labels_support().to_vec();
         let parent_entropy = Self::compute_entropy(&root_classes_support);
         let mut candidates_sorted = vec![];
         for attribute in attributes.iter() {
@@ -147,11 +138,7 @@ trait Handler {
         ratio: bool,
     ) -> f64 {
         let _ = structure.push((attribute, 0));
-        let left_classes_supports = structure
-            .labels_support()
-            .iter()
-            .copied()
-            .collect::<Vec<Support>>();
+        let left_classes_supports = structure.labels_support().to_vec();
         structure.backtrack();
 
         let right_classes_support = root_classes_support

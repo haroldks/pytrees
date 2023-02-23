@@ -18,9 +18,9 @@ use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
 
-// TODO : Is not working for generic types because of the trait bounds and the use of external methods
-
-pub struct DL85<'heur, H, T>
+// TODO: Check if it can be consistent with similarity lower bound And Murtree specialization
+// TODO: Check if it is possible to use blank implementation to reduce duplicates in code
+pub struct LDSDL85<'heur, H, T>
 where
     H: Heuristic + ?Sized,
     T: DataTrait + Default + Debug,
@@ -34,7 +34,7 @@ where
     run_time: Instant,
 }
 
-impl<'heur, H, T> DL85<'heur, H, T>
+impl<'heur, H, T> LDSDL85<'heur, H, T>
 where
     H: Heuristic + ?Sized,
     T: DataTrait + Default + Debug,
@@ -42,6 +42,8 @@ where
     pub fn new(
         min_sup: Support,
         max_depth: Depth,
+        discrepancy_budget: usize,
+        discrepancy_strategy: DiscrepancyStrategy,
         max_error: usize,
         max_time: usize,
         specialization: Specialization,
@@ -63,8 +65,8 @@ where
             branching,
             cache_init,
             cache_init_size,
-            discrepancy_budget: 0,
-            discrepancy_strategy: DiscrepancyStrategy::None,
+            discrepancy_budget,
+            discrepancy_strategy,
         };
         Self {
             constraints,
@@ -138,35 +140,94 @@ where
         let mut similarity_data = SimilarDatasets::new();
         let mut itemset = BTreeSet::new();
 
+        // BEGIN STEP: Compute the discrepancy budget
+        let budget = match self.constraints.discrepancy_budget == <usize>::MAX {
+            true => {
+                Self::compute_discrepancy_limit(candidates.len() - 1, self.constraints.max_depth)
+            }
+            false => self.constraints.discrepancy_budget,
+        };
+        self.constraints.discrepancy_budget = budget;
+        // END STEP: Compute the discrepancy budget
+
         // BEGIN STEP: Run the algorithm
+
+        let mut current_budget = 0;
         self.run_time = Instant::now();
-        self.recursion(
-            structure,
-            0,
-            self.constraints.max_error,
-            (Attribute::MAX, 0),
-            &mut itemset,
-            &candidates,
-            root_index,
-            true,
-            &mut similarity_data,
-        );
+        let mut max_error = self.constraints.max_error;
+        let mut last_iteration = false;
+        while current_budget <= budget {
+            self.recursion(
+                structure,
+                0,
+                current_budget,
+                max_error,
+                (Attribute::MAX, 0),
+                &mut itemset,
+                &candidates,
+                root_index,
+                true,
+                &mut similarity_data,
+            );
+            max_error = self.get_tree_error();
+            if max_error == 0
+                || self.run_time.elapsed().as_secs() as usize >= self.constraints.max_time
+            {
+                break;
+            }
+
+            self.augment_discrepancy(&mut current_budget);
+
+            if current_budget >= budget {
+                current_budget = budget;
+                last_iteration = true;
+            }
+
+            if last_iteration {
+                break;
+            }
+
+            if current_budget > budget {
+                break;
+            }
+        }
         // END STEP: Run the algorithm
 
         // BEGIN STEP: Update the statistics
         self.update_statistics();
-        if let Some(root) = self.cache.get_node(self.cache.get_root_index()) {
-            if root.value.get_node_error() < <usize>::MAX {
-                self.generate_tree();
-            }
+        if self.get_tree_error() < <usize>::MAX {
+            self.generate_tree();
         }
         // END STEP: Update the statistics
+    }
+
+    fn compute_discrepancy_limit(nb_candidates: usize, remaining_depth: Depth) -> usize {
+        let mut max_discrepancy = nb_candidates;
+        for i in 1..remaining_depth {
+            max_discrepancy += nb_candidates.saturating_sub(i);
+        }
+        max_discrepancy
+    }
+
+    fn augment_discrepancy(&self, budget: &mut usize) {
+        if let DiscrepancyStrategy::Double = self.constraints.discrepancy_strategy {
+            if *budget == 0 {
+                *budget = 1;
+            }
+        }
+
+        *budget = match self.constraints.discrepancy_strategy {
+            DiscrepancyStrategy::None => 0,
+            DiscrepancyStrategy::Incremental => *budget + 1,
+            DiscrepancyStrategy::Double => *budget * 2,
+        }
     }
 
     fn recursion(
         &mut self,
         structure: &mut RSparseBitsetStructure,
         depth: Depth,
+        current_discrepancy: usize,
         upper_bound: usize,
         parent_item: Item,
         itemset: &mut BTreeSet<Item>,
@@ -182,7 +243,7 @@ where
 
         // BEGIN STEP: Check if we should stop
         if let Some(node) = self.cache.get_node_mut(parent_index) {
-            let return_condition = self.stop_conditions.check(
+            let return_condition = self.stop_conditions.check_using_discrepancy(
                 node,
                 current_support,
                 self.constraints.min_sup,
@@ -191,6 +252,8 @@ where
                 self.run_time.elapsed(),
                 self.constraints.max_time,
                 child_upper_bound,
+                current_discrepancy,
+                self.constraints.discrepancy_budget,
             );
 
             if return_condition.0 {
@@ -272,13 +335,30 @@ where
         }
         // END STEP: Sort the candidates according to the heuristic
 
+        // BEGIN STEP: Update the discrepancy limit
+        let max_discrepancy = Self::compute_discrepancy_limit(
+            node_candidates.len(),
+            self.constraints.max_depth - depth,
+        );
+        let current_discrepancy = min(current_discrepancy, max_discrepancy);
+        // END STEP: Update the discrepancy limit
+
         // BEGIN STEP: Setup the node similarity data
         let mut child_similarity_data = SimilarDatasets::new();
         let mut min_lower_bound = <usize>::MAX;
         // END STEP: Setup the node similarity data
 
+        let mut discrepancy_pruned = false;
+
         // BEGIN STEP: Explore the candidates
-        for child in node_candidates.iter() {
+        for (position, child) in node_candidates.iter().enumerate() {
+            // BEGIN STEP: Check if we should stop because we have reached the discrepancy budget
+            if position > current_discrepancy {
+                discrepancy_pruned = true;
+                break;
+            }
+            // END STEP: Check if we should stop because we have reached the discrepancy budget
+
             // BEGIN STEP: Choose where to branch first
             let branching_data = self.find_where_to_branch_first(
                 *child,
@@ -312,6 +392,7 @@ where
             let return_infos = self.recursion(
                 structure,
                 depth + 1,
+                current_discrepancy - position,
                 child_upper_bound,
                 item,
                 itemset,
@@ -374,6 +455,7 @@ where
             let return_infos = self.recursion(
                 structure,
                 depth + 1,
+                current_discrepancy - position,
                 right_upper_bound,
                 item,
                 itemset,
@@ -433,6 +515,10 @@ where
                     ReturnCondition::LowerBoundConstrained,
                     HasIntersected::Yes,
                 );
+            }
+            if node.value.get_node_error() == 0 || !discrepancy_pruned {
+                node.value
+                    .set_discrepancy(self.constraints.discrepancy_budget);
             }
         }
         return (
@@ -725,6 +811,14 @@ where
         self.statistics.duration = self.run_time.elapsed();
         if let Some(node) = self.cache.get_node(self.cache.get_root_index()) {
             self.statistics.tree_error = node.value.get_node_error();
+        }
+    }
+
+    fn get_tree_error(&self) -> usize {
+        if let Some(root) = self.cache.get_node(self.cache.get_root_index()) {
+            root.value.get_node_error()
+        } else {
+            <usize>::MAX
         }
     }
 

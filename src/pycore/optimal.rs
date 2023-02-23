@@ -3,9 +3,10 @@ use pyo3::{pyclass, pymethods, pymodule, IntoPy, PyObject, PyResult, Python};
 
 use crate::algorithms::dl85::DL85;
 use crate::algorithms::dl85_utils::structs_enums::{
-    BranchingType, CacheInit, Constraints, LowerBoundHeuristic, SortHeuristic, Specialization,
-    Statistics,
+    BranchingType, CacheInit, Constraints, DiscrepancyStrategy, LowerBoundHeuristic, SortHeuristic,
+    Specialization, Statistics,
 };
+use crate::algorithms::lds_dl85::LDSDL85;
 use crate::dataset::binary_dataset::BinaryDataset;
 use crate::dataset::data_trait::Dataset;
 use crate::heuristics::{GiniIndex, Heuristic, InformationGain, InformationGainRatio, NoHeuristic};
@@ -30,6 +31,8 @@ impl Dl85InternalClassifier {
     fn new(
         min_sup: Support,
         max_depth: Depth,
+        discrepancy_budget: isize,
+        discrepancy_strategy: usize,
         error: isize,
         time: isize,
         specialization: usize,
@@ -47,7 +50,12 @@ impl Dl85InternalClassifier {
 
         let max_time = match time == -1 {
             true => <usize>::MAX,
-            false => error as usize,
+            false => time as usize,
+        };
+
+        let discrepancy_budget = match discrepancy_budget == -1 {
+            true => <usize>::MAX,
+            false => discrepancy_budget as usize,
         };
 
         let specialization = match specialization {
@@ -83,6 +91,13 @@ impl Dl85InternalClassifier {
             _ => panic!("Invalid cache init type"),
         };
 
+        let discrepancy_strategy = match discrepancy_strategy {
+            0 => DiscrepancyStrategy::None,
+            1 => DiscrepancyStrategy::Incremental,
+            2 => DiscrepancyStrategy::Double,
+            _ => panic!("Invalid discrepancy strategy"),
+        };
+
         let constraints = Constraints {
             max_depth,
             min_sup,
@@ -94,6 +109,8 @@ impl Dl85InternalClassifier {
             branching,
             cache_init,
             cache_init_size,
+            discrepancy_budget,
+            discrepancy_strategy,
         };
 
         let statistics = Statistics {
@@ -138,22 +155,47 @@ impl Dl85InternalClassifier {
             SortHeuristic::None => Box::new(NoHeuristic::default()),
         };
 
-        let mut algorithm: DL85<'_, _, Data> = DL85::new(
-            self.constraints.min_sup,
-            self.constraints.max_depth,
-            self.constraints.max_error,
-            self.constraints.max_error,
-            self.constraints.specialization,
-            self.constraints.lower_bound,
-            self.constraints.branching,
-            self.constraints.cache_init,
-            self.constraints.cache_init_size,
-            self.constraints.one_time_sort,
-            heuristic.as_mut(),
-        );
+        if let DiscrepancyStrategy::None = self.constraints.discrepancy_strategy {
+            println!("Using DL85");
+            let mut algorithm: DL85<'_, _, Data> = DL85::new(
+                self.constraints.min_sup,
+                self.constraints.max_depth,
+                self.constraints.max_error,
+                self.constraints.max_time,
+                self.constraints.specialization,
+                self.constraints.lower_bound,
+                self.constraints.branching,
+                self.constraints.cache_init,
+                self.constraints.cache_init_size,
+                self.constraints.one_time_sort,
+                heuristic.as_mut(),
+            );
 
-        algorithm.fit(&mut structure);
-        self.tree = algorithm.tree.clone();
-        self.statistics = algorithm.statistics;
+            algorithm.fit(&mut structure);
+            self.tree = algorithm.tree.clone();
+            self.statistics = algorithm.statistics;
+        } else {
+            println!("Using LDSDL85");
+            println!("Constraints : {:?}", self.constraints);
+            let mut algorithm: LDSDL85<'_, _, Data> = LDSDL85::new(
+                self.constraints.min_sup,
+                self.constraints.max_depth,
+                self.constraints.discrepancy_budget,
+                self.constraints.discrepancy_strategy,
+                self.constraints.max_error,
+                self.constraints.max_time,
+                self.constraints.specialization,
+                self.constraints.lower_bound,
+                self.constraints.branching,
+                self.constraints.cache_init,
+                self.constraints.cache_init_size,
+                self.constraints.one_time_sort,
+                heuristic.as_mut(),
+            );
+
+            algorithm.fit(&mut structure);
+            self.tree = algorithm.tree.clone();
+            self.statistics = algorithm.statistics;
+        }
     }
 }

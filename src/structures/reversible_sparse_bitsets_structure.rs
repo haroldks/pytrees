@@ -9,7 +9,6 @@ use crate::structures::structures_types::{
 
 #[derive(Clone)]
 pub struct RSparseBitsetStructure<'data> {
-    // TODO: Change Initial support value and allow label_support and support computation at each push directly to avoid recomputing the support
     inputs: &'data BitsetStructData,
     support: Support,
     labels_support: Vec<Support>,
@@ -31,6 +30,7 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     }
 
     fn label_support(&self, label: usize) -> Support {
+        // FIXME: Useless
         let state = &self.state;
         let support = Support::MAX;
 
@@ -53,7 +53,6 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     }
 
     fn labels_support(&mut self) -> &[Support] {
-        coz::scope!("labels_support");
         if !self.labels_support.is_empty() {
             return &self.labels_support;
         }

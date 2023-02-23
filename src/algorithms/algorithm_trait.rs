@@ -182,8 +182,7 @@ pub trait Basic {
         <usize>::MAX
     }
 
-    fn create_child(tree: &mut Tree<NodeData>, parent: Index, is_left: bool) -> Index
-where {
+    fn create_child(tree: &mut Tree<NodeData>, parent: Index, is_left: bool) -> Index {
         let value = NodeData::new();
         let node = TreeNode::new(value);
         tree.add_node(parent, is_left, node)

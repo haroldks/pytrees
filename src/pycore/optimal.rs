@@ -156,7 +156,6 @@ impl Dl85InternalClassifier {
         };
 
         if let DiscrepancyStrategy::None = self.constraints.discrepancy_strategy {
-            println!("Using DL85");
             let mut algorithm: DL85<'_, _, Data> = DL85::new(
                 self.constraints.min_sup,
                 self.constraints.max_depth,
@@ -175,8 +174,6 @@ impl Dl85InternalClassifier {
             self.tree = algorithm.tree.clone();
             self.statistics = algorithm.statistics;
         } else {
-            println!("Using LDSDL85");
-            println!("Constraints : {:?}", self.constraints);
             let mut algorithm: LDSDL85<'_, _, Data> = LDSDL85::new(
                 self.constraints.min_sup,
                 self.constraints.max_depth,

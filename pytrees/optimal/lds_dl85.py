@@ -23,7 +23,7 @@ class LDSDL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         specialization=Specialization.None_,
         lower_bound=LowerBound.None_,
         one_time_sort=False,
-        heuristic=Heuristic.None_,
+        heuristic=Heuristic.InformationGain,
         branching=Branching.None_,
         cache_init=CacheInit.Dynamic,
         cache_init_size=0,

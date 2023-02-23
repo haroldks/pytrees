@@ -165,7 +165,7 @@ class Predictor:
                 node = self.tree_["tree"][node["left"]]
         return node["value"]["out"]
 
-    def get_dot_body_rec(self, node, parent=None, left=False):
+    def get_dot_body_rec(self, node, parent=None, left=0):
         gstring = ""
         id = str(uuid.uuid4())
         id = id.replace("-", "_")
@@ -198,19 +198,13 @@ class Predictor:
                 + '}}"];\n'
             )
             gstring += (
-                "node_"
-                + parent
-                + " -> node_"
-                + id
-                + " [label="
-                + str(int(left))
-                + "];\n"
+                "node_" + parent + " -> node_" + id + " [label=" + str(left) + "];\n"
             )
             gstring += self.get_dot_body_rec(
-                self.tree_["tree"][node["left"]], id, left=True
+                self.tree_["tree"][node["left"]], id, left=0
             )
             gstring += self.get_dot_body_rec(
-                self.tree_["tree"][node["right"]], id, left=False
+                self.tree_["tree"][node["right"]], id, left=1
             )
         return gstring
 
@@ -220,7 +214,6 @@ class Predictor:
         id = id.replace("-", "_")
 
         root = self.tree_["tree"][0]
-        print(root)
         feat = root["value"]["test"]
         if feat is not None:
             gstring += (
@@ -233,10 +226,10 @@ class Predictor:
                 + '}}"];\n'
             )
             gstring += self.get_dot_body_rec(
-                self.tree_["tree"][root["left"]], parent=id
+                self.tree_["tree"][root["left"]], parent=id, left=0
             )
             gstring += self.get_dot_body_rec(
-                self.tree_["tree"][root["right"]], parent=id
+                self.tree_["tree"][root["right"]], parent=id, left=1
             )
         gstring += "}"
         return gstring

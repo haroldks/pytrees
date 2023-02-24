@@ -1,11 +1,11 @@
-## Performance-oriented Less Greedy Decision Trees
+## Optimal and SubOptimal Decision Trees
 
 **Disclaimer: This is a work In Progress**
 
-Implementation of Less Greedy Decision Tree using rust and a python wrapper.
+Implementation of Less Greedy Decision Trees algorithms + DL8.5  and its extensions using rust and a python wrapper.
 
-An LGDTPredictor class is built around the Rust implementation and is compatible with Scikit-learn
 
+A documentation will follow soon.
 
 ### Running the code:
 - Install [Rust](https://www.rust-lang.org/tools/install) and ensure that cargo is available in the **PATH**
@@ -16,14 +16,3 @@ An LGDTPredictor class is built around the Rust implementation and is compatible
   - ```pip install .[experiments]```
 
 - Open a terminal in the experiments folder and run the file you want.
-
-### To Do:
-
-- [ ] Add more tests
-- [ ] Add Logging or verbosity
-- [ ] Add more documentation
-- [ ] Add more experiments
-- [ ] Depth parameter incrementation
-- [ ] Should I save metric field ?
-- [ ] Resize of the cache
-- [ ] Check performance bottleneck

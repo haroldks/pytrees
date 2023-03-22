@@ -89,6 +89,7 @@ where
         // BEGIN STEP: Setup everything in the statist Update Statistics structures
         self.statistics.num_attributes = structure.num_attributes();
         let distribution = structure.labels_support();
+        println!("Distribution: {distribution:?}");
         self.statistics.train_distribution = [distribution[0], distribution[1]];
         self.statistics.num_samples = structure.support();
         // END STEP : Setup everything in the statistics structures

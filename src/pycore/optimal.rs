@@ -149,10 +149,10 @@ impl Dl85InternalClassifier {
         let mut structure = RSparseBitsetStructure::new(&formatted_data);
 
         let mut heuristic: Box<dyn Heuristic> = match self.heuristic {
-            SortHeuristic::InformationGain => Box::new(InformationGain::default()),
-            SortHeuristic::InformationGainRatio => Box::new(InformationGainRatio::default()),
-            SortHeuristic::GiniIndex => Box::new(GiniIndex::default()),
-            SortHeuristic::None => Box::new(NoHeuristic::default()),
+            SortHeuristic::InformationGain => Box::<InformationGain>::default(),
+            SortHeuristic::InformationGainRatio => Box::<InformationGainRatio>::default(),
+            SortHeuristic::GiniIndex => Box::<GiniIndex>::default(),
+            SortHeuristic::None => Box::<NoHeuristic>::default(),
         };
 
         if let DiscrepancyStrategy::None = self.constraints.discrepancy_strategy {

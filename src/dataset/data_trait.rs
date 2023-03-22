@@ -19,7 +19,7 @@ pub trait Dataset {
     fn get_train(&self) -> &Data;
 
     fn open_file(filename: &str) -> Result<Vec<String>, Error> {
-        let input = File::open(&filename)?; //Error Handling for missing filename
+        let input = File::open(filename)?; //Error Handling for missing filename
         let buffered = BufReader::new(input); // Buffer for the file
         Ok(buffered
             .lines()

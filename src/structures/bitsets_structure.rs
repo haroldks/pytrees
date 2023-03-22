@@ -183,7 +183,7 @@ impl<'data> BitsetStructure<'data> {
 
         state.push(inital_state);
 
-        let mut structure = BitsetStructure {
+        BitsetStructure {
             inputs,
             support: inputs.size as Support,
             labels_support: Vec::with_capacity(inputs.targets.len()),
@@ -191,8 +191,7 @@ impl<'data> BitsetStructure<'data> {
             num_labels: inputs.targets.len(),
             position: Vec::with_capacity(num_attributes),
             state,
-        };
-        structure
+        }
     }
 
     fn get_last_state(&self) -> Option<&Bitset> {

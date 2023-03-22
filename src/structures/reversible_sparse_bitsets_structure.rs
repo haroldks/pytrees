@@ -93,7 +93,7 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
                         }
                     }
                 }
-                self.labels_support.push(count as Support);
+                self.labels_support[label] = count as Support;
             }
             return &self.labels_support;
         }
@@ -217,7 +217,6 @@ impl<'data> RSparseBitsetStructure<'data> {
                 first_chunk[0] &= !int_mask;
             }
         }
-
         let mut limit = Vec::with_capacity(num_attributes);
         limit.push((inputs.chunks - 1) as isize);
 
@@ -232,7 +231,6 @@ impl<'data> RSparseBitsetStructure<'data> {
             index,
             limit,
         };
-
         structure.support();
         structure
     }

@@ -38,22 +38,22 @@ pub trait Algorithm {
     fn build_depth_two_matrix<S>(
         structure: &mut S,
         candidates: &Vec<Attribute>,
-    ) -> Vec<Vec<(usize, usize)>>
+    ) -> Vec<Vec<Vec<usize>>>
     where
         S: Structure,
     {
         let size = candidates.len();
-        let mut matrix = vec![vec![(0usize, 0usize); size]; size];
+        let mut matrix = vec![vec![vec![]; size]; size];
         for i in 0..size {
             structure.push((candidates[i], 1));
             let val = structure.labels_support();
-            matrix[i][i] = (val[0], val[1]);
+            matrix[i][i] = val.to_vec();
 
             for second in i + 1..size {
                 structure.push((candidates[second], 1));
                 let val = structure.labels_support();
-                matrix[i][second] = (val[0], val[1]);
-                matrix[second][i] = (val[0], val[1]);
+                matrix[i][second] = val.to_vec();
+                matrix[second][i] = val.to_vec();
                 structure.backtrack();
             }
             structure.backtrack();
@@ -61,49 +61,6 @@ pub trait Algorithm {
         matrix
     }
 
-    fn get_depth_two_leaves_stats(
-        matrix: &[Vec<(usize, usize)>],
-        classes_support: &[usize],
-        first: Item,
-        second: Item,
-    ) -> [usize; 2] {
-        match first.1 == 0 {
-            true => {
-                let mut leaves = [0usize; 2];
-                match second.1 == 0 {
-                    true => {
-                        leaves[0] = classes_support[0] + matrix[first.0][second.0].0
-                            - matrix[first.0][first.0].0
-                            - matrix[second.0][second.0].0;
-                        leaves[1] = classes_support[1] + matrix[first.0][second.0].1
-                            - matrix[first.0][first.0].1
-                            - matrix[second.0][second.0].1;
-                        leaves
-                    }
-                    false => {
-                        leaves[0] = matrix[second.0][second.0].0 - matrix[first.0][second.0].0;
-                        leaves[1] = matrix[second.0][second.0].1 - matrix[first.0][second.0].1;
-                        leaves
-                    }
-                }
-            }
-            false => {
-                let mut leaves = [0usize; 2];
-                match second.1 == 0 {
-                    true => {
-                        leaves[0] = matrix[first.0][first.0].0 - matrix[first.0][second.0].0;
-                        leaves[1] = matrix[first.0][first.0].1 - matrix[first.0][second.0].1;
-                        leaves
-                    }
-                    false => {
-                        leaves[0] = matrix[first.0][second.0].0;
-                        leaves[1] = matrix[first.0][second.0].1;
-                        leaves
-                    }
-                }
-            }
-        }
-    }
     fn sort_candidates<S, F>(
         structure: &mut S,
         candidates: &Vec<Attribute>,
@@ -157,6 +114,29 @@ pub trait Basic {
         node.left == node.right
     }
 
+    fn get_diff_errors(main_errors: &[usize], sub_errors: &[usize]) -> Vec<usize> {
+        let mut errors = vec![];
+        for i in main_errors.iter().zip(sub_errors.iter()) {
+            errors.push(i.0 - i.1);
+        }
+        errors
+    }
+
+    fn get_leaf_error(classes_support: &[usize]) -> (usize, usize) {
+        let mut max_idx = 0;
+        let mut max_value = 0;
+        let mut total = 0;
+        for (idx, value) in classes_support.iter().enumerate() {
+            total += value;
+            if *value >= max_value {
+                max_value = *value;
+                max_idx = idx;
+            }
+        }
+        let error = total - max_value;
+        (error, max_idx)
+    }
+
     fn get_misclassification_error(classes_support: &[usize]) -> usize {
         classes_support.iter().sum::<usize>() - classes_support.iter().max().unwrap()
     }
@@ -199,14 +179,12 @@ pub trait Basic {
     {
         let leaf_index = Self::create_child(tree, parent, is_left);
         let classes_support = structure.labels_support();
-        let top_class = Self::get_top_class(classes_support);
-        let error = Self::get_misclassification_error(classes_support);
-
+        let error = Self::get_leaf_error(classes_support);
         if let Some(leaf) = tree.get_node_mut(leaf_index) {
-            leaf.value.error = error;
-            leaf.value.out = Some(top_class)
+            leaf.value.error = error.0;
+            leaf.value.out = Some(error.1)
         }
-        error
+        error.0
     }
 
     fn move_tree(

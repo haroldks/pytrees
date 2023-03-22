@@ -2,7 +2,7 @@ use crate::algorithms::algorithm_trait::{Algorithm, Basic};
 use crate::algorithms::murtree::MurTree;
 use crate::structures::binary_tree::{NodeData, Tree};
 use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{Attribute, Support};
+use crate::structures::structures_types::{Attribute, Item, Support};
 use float_cmp::{ApproxEq, F64Margin};
 
 pub struct InfoGain {
@@ -40,8 +40,7 @@ impl Algorithm for InfoGain {
         for branch in [0usize, 1].iter() {
             structure.push((candidates[0], *branch));
             let classes_support = structure.labels_support();
-            let class = Self::get_top_class(classes_support);
-            let error = Self::get_misclassification_error(classes_support);
+            let error = Self::get_leaf_error(classes_support);
 
             let index = match *branch == 0 {
                 true => left_index,
@@ -49,9 +48,9 @@ impl Algorithm for InfoGain {
             };
 
             if let Some(node) = tree.get_node_mut(index) {
-                node.value.error = error;
-                node.value.out = Some(class);
-                node_error += error;
+                node.value.error = error.0;
+                node.value.out = Some(error.1);
+                node_error += error.0;
             }
             structure.backtrack();
         }
@@ -110,8 +109,8 @@ impl Algorithm for InfoGain {
                     continue;
                 }
 
-                let mut left_leaves = [0usize; 2];
-                let mut right_leaves = [0usize; 2];
+                let mut left_leaves = vec![];
+                let mut right_leaves = vec![];
                 let mut root_error = 0;
                 let mut root_gain = 0f64;
 
@@ -120,11 +119,11 @@ impl Algorithm for InfoGain {
                     let mut right_leaf_index = 0;
                     let mut node_gain = parent_entropy;
 
-                    left_leaves = Self::get_depth_two_leaves_stats(
+                    left_leaves = Self::get_leaves_classes_support(
                         &matrix,
-                        classes_support,
                         (i, *val),
                         (j, 0),
+                        classes_support,
                     );
 
                     let weight = match support {
@@ -133,13 +132,13 @@ impl Algorithm for InfoGain {
                     };
 
                     node_gain -= Self::compute_entropy(&left_leaves) * weight;
-                    let left_leaves_error = *left_leaves.iter().min().unwrap();
+                    let left_leaves_error = Self::get_leaf_error(&left_leaves);
 
-                    right_leaves = Self::get_depth_two_leaves_stats(
+                    right_leaves = Self::get_leaves_classes_support(
                         &matrix,
-                        classes_support,
                         (i, *val),
                         (j, 1),
+                        classes_support,
                     );
 
                     let weight = match support {
@@ -148,9 +147,9 @@ impl Algorithm for InfoGain {
                     };
 
                     node_gain -= Self::compute_entropy(&right_leaves) * weight;
-                    let right_leaves_error = *right_leaves.iter().min().unwrap();
+                    let right_leaves_error = Self::get_leaf_error(&right_leaves);
 
-                    let node_error = left_leaves_error + right_leaves_error;
+                    let node_error = left_leaves_error.0 + right_leaves_error.0;
 
                     let mut past_info_gain = 0f64;
                     let index = match *val == 0 {
@@ -172,11 +171,16 @@ impl Algorithm for InfoGain {
                             right_leaf_index = node.right;
                         }
                         if let Some(left_leaf_ref) = root_tree.get_node_mut(left_leaf_index) {
-                            Self::create_leaves(left_leaf_ref, &left_leaves, left_leaves_error);
+                            left_leaf_ref.value.error = left_leaves_error.0;
+                            left_leaf_ref.value.out = Some(left_leaves_error.1);
+
+                            // Self::create_leaves(left_leaf_ref, &left_leaves, left_leaves_error);
                         }
 
                         if let Some(right_leaf_ref) = root_tree.get_node_mut(right_leaf_index) {
-                            Self::create_leaves(right_leaf_ref, &right_leaves, right_leaves_error);
+                            right_leaf_ref.value.error = right_leaves_error.0;
+                            right_leaf_ref.value.out = Some(right_leaves_error.1);
+                            // Self::create_leaves(right_leaf_ref, &right_leaves, right_leaves_error);
                         }
                     }
                     if let Some(node) = root_tree.get_node_mut(index) {
@@ -324,6 +328,54 @@ impl InfoGain {
             }
         }
         0.
+    }
+
+    fn get_leaves_classes_support(
+        matrix: &[Vec<Vec<usize>>],
+        first: Item,
+        second: Item,
+        root_classes_support: &[usize],
+    ) -> Vec<usize> {
+        let i = first.0;
+        let j = second.0;
+        let is_left_i = first.1 == 0;
+        let is_left_j = second.1 == 0;
+
+        let i_right_sc = &matrix[i][i];
+        let j_right_sc = &matrix[j][j];
+        let i_right_j_right_sc = &matrix[i][j];
+
+        let i_left_j_right_sc = Self::get_diff_errors(j_right_sc, i_right_j_right_sc);
+
+        match is_left_i {
+            true => {
+                match is_left_j {
+                    true => {
+                        // i_left_j_left
+                        let i_left_sc = Self::get_diff_errors(root_classes_support, i_right_sc);
+                        Self::get_diff_errors(&i_left_sc, &i_left_j_right_sc) // i_left_j_left_sc
+                    }
+
+                    false => {
+                        // i_left_j_right
+                        i_left_j_right_sc.to_vec()
+                    }
+                }
+            }
+            false => {
+                match is_left_j {
+                    true => {
+                        // i_right_j_left
+                        Self::get_diff_errors(i_right_sc, i_right_j_right_sc) // i_right_j_left_sc
+                    }
+
+                    false => {
+                        // i_right_j_right
+                        i_right_j_right_sc.to_vec()
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -28,17 +28,15 @@ impl Algorithm for MurTree {
         for candidate in candidates.iter() {
             structure.push((*candidate, 0));
             let classes_support = structure.labels_support();
-            let left_class = Self::get_top_class(classes_support);
-            let left_error = Self::get_misclassification_error(classes_support);
+            let left_error = Self::get_leaf_error(classes_support);
             structure.backtrack();
 
             structure.push((*candidate, 1));
             let classes_support = structure.labels_support();
-            let right_class = Self::get_top_class(classes_support);
-            let right_error = Self::get_misclassification_error(classes_support);
+            let right_error = Self::get_leaf_error(classes_support);
             structure.backtrack();
 
-            let error = left_error + right_error;
+            let error = left_error.0 + right_error.0;
             let mut past_error = <usize>::MAX;
 
             if let Some(root) = tree.get_node_mut(tree.get_root_index()) {
@@ -50,12 +48,12 @@ impl Algorithm for MurTree {
                     root.value.test = Some(*candidate);
                 }
                 if let Some(left) = tree.get_node_mut(left_index) {
-                    left.value.error = left_error;
-                    left.value.out = Some(left_class);
+                    left.value.error = left_error.0;
+                    left.value.out = Some(left_error.1);
                 }
                 if let Some(right) = tree.get_node_mut(right_index) {
-                    right.value.error = right_error;
-                    right.value.out = Some(right_class);
+                    right.value.error = right_error.0;
+                    right.value.out = Some(right_error.1);
                 }
             }
         }
@@ -82,12 +80,23 @@ impl Algorithm for MurTree {
         let classes_support = structure.labels_support().to_vec();
         let support = structure.get_support();
 
+        let before_creation_error = Self::get_leaf_error(&classes_support);
+
         for (i, first) in candidates.iter().enumerate() {
-            let root_right_support = matrix[i][i].0 + matrix[i][i].1;
+            // LEFT PART
+
+            let i_right_classes_support = &matrix[i][i];
+            let i_left_classes_support =
+                Self::get_diff_errors(&classes_support, i_right_classes_support);
+
+            let root_right_support = matrix[i][i].iter().sum::<usize>();
             let root_left_support = support - root_right_support;
+
             if root_left_support < min_sup || root_right_support < min_sup {
                 continue;
             }
+
+            // TODO : Should check if there is enough support for the leaf as root_left_support should be >= 2 * min_sup otherwise it is a leaf.
 
             let mut root_tree = Self::empty_tree(2);
             let mut left_index = 0;
@@ -95,83 +104,241 @@ impl Algorithm for MurTree {
 
             if let Some(root_node) = root_tree.get_node_mut(root_tree.get_root_index()) {
                 root_node.value.test = Some(*first);
+                root_node.value.error = before_creation_error.0;
                 left_index = root_node.left;
                 right_index = root_node.right;
             }
 
-            for (j, second) in candidates.iter().enumerate().take(candidates.len()) {
-                if i == j {
-                    continue;
+            // TODO : Check if support in enough 2 * min_sup
+
+            if root_left_support < 2 * min_sup {
+                let error = Self::get_leaf_error(&i_left_classes_support);
+                if let Some(left_node) = root_tree.get_node_mut(left_index) {
+                    left_node.value.error = error.0;
+                    left_node.value.out = Some(error.1);
+                }
+                if let Some(node) = tree.get_node(tree.get_root_index()) {
+                    if node.value.error < error.0 {
+                        continue;
+                    }
+                }
+            } else {
+                let mut feat_error = <usize>::MAX;
+                if let Some(root) = tree.get_node_mut(tree.get_root_index()) {
+                    feat_error = root.value.error;
+                }
+                let error = Self::get_leaf_error(&i_left_classes_support);
+
+                if error.0 < feat_error {
+                    if let Some(left_node) = root_tree.get_node_mut(left_index) {
+                        left_node.value.error = error.0;
+                    }
                 }
 
-                let mut left_leaves = [0usize; 2];
-                let mut right_leaves = [0usize; 2];
-                let mut root_error = 0;
+                for (j, second) in candidates.iter().enumerate().take(candidates.len()) {
+                    if i == j {
+                        // TODO: Can be replaced by first == second
+                        continue;
+                    }
 
-                for val in [0usize, 1].iter() {
+                    // TODO: Add upper bound for left or right error based on the best tree so far
+
+                    // Here is if the left part of the tree so the classes support of i__left -> j__right
+                    let i_left_j_right_classes_support =
+                        Self::get_diff_errors(&matrix[j][j], &matrix[i][j]);
+                    let j_right_support = matrix[j][j].iter().sum::<usize>();
+                    let i_right_j_right_support = matrix[i][j].iter().sum::<usize>();
+                    let i_left_j_right_support = j_right_support - i_right_j_right_support; // Important
+                    let i_left_j_left_support = root_left_support - i_left_j_right_support; // Important
+
+                    if i_left_j_right_support < min_sup || i_left_j_left_support < min_sup {
+                        // Not enough support for the left part of the tree
+                        continue;
+                    }
+
+                    let right_leaf_error = Self::get_leaf_error(&i_left_j_right_classes_support);
+
+                    // TODO Upper bound control here
+                    if right_leaf_error.0 >= feat_error {
+                        continue;
+                    }
+
+                    let i_left_j_left_classes_support = Self::get_diff_errors(
+                        &i_left_classes_support,
+                        &i_left_j_right_classes_support,
+                    );
+                    let left_leaf_error = Self::get_leaf_error(&i_left_j_left_classes_support);
+
+                    // TODO Upper bound control here
+                    // println!("Feature error : {:?}", feat_error);
+                    // println!("First attribute : {:?} Second attribute : {:?} Left error : {:?} Right error : {:?}\n", first, second, left_leaf_error.0, right_leaf_error.0);
+                    if (left_leaf_error.0 + right_leaf_error.0) >= feat_error {
+                        continue;
+                    }
+
                     let mut left_leaf_index = 0;
                     let mut right_leaf_index = 0;
-                    left_leaves = Self::get_depth_two_leaves_stats(
-                        &matrix,
-                        &classes_support,
-                        (i, *val),
-                        (j, 0),
-                    );
-                    let left_leaves_error = *left_leaves.iter().min().unwrap();
 
-                    right_leaves = Self::get_depth_two_leaves_stats(
-                        &matrix,
-                        &classes_support,
-                        (i, *val),
-                        (j, 1),
-                    );
-                    let right_leaves_error = *right_leaves.iter().min().unwrap();
-
-                    let node_error = left_leaves_error + right_leaves_error;
-
-                    let mut past_error = <usize>::MAX;
-                    let index = match *val == 0 {
-                        true => left_index,
-                        false => right_index,
-                    };
-                    if let Some(left_node) = root_tree.get_node(index) {
-                        past_error = left_node.value.error;
+                    if let Some(left_node) = root_tree.get_node_mut(left_index) {
+                        left_node.value.test = Some(*second);
+                        left_node.value.error = left_leaf_error.0 + right_leaf_error.0;
+                        left_leaf_index = left_node.left;
+                        right_leaf_index = left_node.right;
                     }
 
-                    if node_error < past_error {
-                        if let Some(node) = root_tree.get_node_mut(index) {
-                            node.value.test = Some(*second);
-                            node.value.error = node_error;
-                            left_leaf_index = node.left;
-                            right_leaf_index = node.right;
-                        }
-                        if let Some(left_leaf_ref) = root_tree.get_node_mut(left_leaf_index) {
-                            Self::create_leaves(left_leaf_ref, &left_leaves, left_leaves_error);
-                        }
+                    if let Some(left_leaf) = root_tree.get_node_mut(left_leaf_index) {
+                        left_leaf.value.error = left_leaf_error.0;
+                        left_leaf.value.out = Some(left_leaf_error.1);
+                    }
 
-                        if let Some(right_leaf_ref) = root_tree.get_node_mut(right_leaf_index) {
-                            Self::create_leaves(right_leaf_ref, &right_leaves, right_leaves_error);
-                        }
+                    if let Some(right_leaf) = root_tree.get_node_mut(right_leaf_index) {
+                        right_leaf.value.error = right_leaf_error.0;
+                        right_leaf.value.out = Some(right_leaf_error.1);
                     }
-                    if let Some(node) = root_tree.get_node_mut(index) {
-                        root_error += node.value.error;
-                    }
-                }
-                if let Some(root_node) = root_tree.get_node_mut(root_tree.get_root_index()) {
-                    root_node.value.error = root_error;
-                    if root_node.value.error == 0 {
+
+                    feat_error = left_leaf_error.0 + right_leaf_error.0;
+
+                    if feat_error == 0 {
                         break;
                     }
                 }
             }
 
-            if Self::get_tree_error(&root_tree) < Self::get_tree_error(&tree) {
-                tree = root_tree;
+            // println!("Root tree Before going to the right");
+            // root_tree.print();
+
+            if root_right_support < 2 * min_sup {
+                let error = Self::get_leaf_error(i_right_classes_support);
+                if let Some(right_node) = root_tree.get_node_mut(right_index) {
+                    right_node.value.error = error.0;
+                    right_node.value.out = Some(error.1);
+                }
+
+                let mut current_left_error = <usize>::MAX;
+                let best_error = tree.get_node(tree.get_root_index()).unwrap().value.error;
+
+                if let Some(node) = root_tree.get_node(left_index) {
+                    current_left_error = node.value.error;
+                }
+                if current_left_error > best_error || error.0 >= best_error - current_left_error {
+                    // TODO Danger here
+                    continue;
+                }
+            } else {
+                let mut feat_error = <usize>::MAX;
+                if let Some(root) = tree.get_node(tree.get_root_index()) {
+                    feat_error = root.value.error;
+                }
+                // println!("Before feat_error: {}", feat_error);
+                let mut current_left_error = <usize>::MAX;
+                //root_tree.print();
+                if let Some(left_node) = root_tree.get_node(left_index) {
+                    current_left_error = left_node.value.error;
+                    // feat_error = feat_error.saturating_sub(left_node.value.error);
+                }
+
+                // println!("After feat_error: {}", feat_error);
+
+                let error = Self::get_leaf_error(i_right_classes_support);
+                // println!("Error: {:?}", error);
+                // println!("I right classes support: {:?}", i_right_classes_support);
+                if current_left_error > feat_error || error.0 < feat_error - current_left_error {
+                    if let Some(right_node) = root_tree.get_node_mut(right_index) {
+                        right_node.value.error = error.0;
+                        right_node.value.out = Some(error.1);
+                    }
+                }
+
+                // TODO LOWER BOUND CONTROL HERE
+                // if
+
+                for (j, second) in candidates.iter().enumerate().take(candidates.len()) {
+                    if i == j {
+                        // TODO: Can be replaced by first == second
+                        continue;
+                    }
+
+                    // Here is if the right part of the tree so the classes support of i__right -> j__right
+                    let i_right_j_right_classes_support = &matrix[i][j];
+                    let i_right_j_left_classes_support =
+                        Self::get_diff_errors(&matrix[i][i], &matrix[i][j]);
+                    let i_right_j_right_support = matrix[i][j].iter().sum::<usize>();
+                    let i_right_j_left_support = root_right_support - i_right_j_right_support; // Important
+
+                    if i_right_j_left_support < min_sup || i_right_j_right_support < min_sup {
+                        // Not enough support for the right part of the tree
+                        continue;
+                    }
+
+                    let left_leaf_error = Self::get_leaf_error(&i_right_j_left_classes_support);
+
+                    // TODO Upper bound control here
+                    if left_leaf_error.0 >= feat_error {
+                        continue;
+                    }
+
+                    let right_leaf_error = Self::get_leaf_error(i_right_j_right_classes_support);
+
+                    // TODO Upper bound control here
+                    if (left_leaf_error.0 + right_leaf_error.0) >= feat_error {
+                        continue;
+                    }
+
+                    let mut left_leaf_index = 0;
+                    let mut right_leaf_index = 0;
+
+                    if let Some(right_node) = root_tree.get_node_mut(right_index) {
+                        right_node.value.test = Some(*second);
+                        right_node.value.error = left_leaf_error.0 + right_leaf_error.0;
+                        left_leaf_index = right_node.left;
+                        right_leaf_index = right_node.right;
+                    }
+
+                    if let Some(left_leaf) = root_tree.get_node_mut(left_leaf_index) {
+                        left_leaf.value.error = left_leaf_error.0;
+                        left_leaf.value.out = Some(left_leaf_error.1);
+                    }
+
+                    if let Some(right_leaf) = root_tree.get_node_mut(right_leaf_index) {
+                        right_leaf.value.error = right_leaf_error.0;
+                        right_leaf.value.out = Some(right_leaf_error.1);
+                    }
+
+                    feat_error = left_leaf_error.0 + right_leaf_error.0;
+                    if feat_error == 0 {
+                        break;
+                    }
+                }
+
+                let mut feat_error = <usize>::MAX;
+                if let Some(node) = root_tree.get_node(left_index) {
+                    feat_error = node.value.error;
+                }
+                if let Some(node) = root_tree.get_node(right_index) {
+                    feat_error = feat_error.saturating_add(node.value.error);
+                }
+
+                if let Some(feat_tree) = root_tree.get_node_mut(tree.get_root_index()) {
+                    feat_tree.value.error = feat_error;
+                }
+
+                let mut best_error = <usize>::MAX;
+                if let Some(node) = tree.get_node(tree.get_root_index()) {
+                    best_error = node.value.error;
+                }
+                // println!("Best error: {}", best_error);
+                // println!("Feat error: {}", feat_error);
+                // println!("------------------");
+                if best_error > feat_error {
+                    tree = root_tree;
+                }
+                if feat_error == 0 {
+                    break;
+                }
             }
-            if Self::get_tree_error(&tree) == 0 {
-                break;
-            }
+            // tree.print();
         }
+
         tree
     }
 }

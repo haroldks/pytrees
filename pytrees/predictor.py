@@ -42,6 +42,24 @@ class DiscrepancyStrategy(IntEnum):
 
 
 class Predictor:
+    OPTIMAL_ARGS = [
+        "min_sup",
+        "max_depth",
+        "discrepancy_budget",
+        "discrepancy_strategy",
+        "max_error",
+        "max_time",
+        "specialization",
+        "lower_bound",
+        "branching",
+        "one_time_sort",
+        "heuristic",
+        "cache_init",
+        "cache_init_size",
+    ]
+
+    LESS_GREEDY_ARGS = ["min_sup", "max_depth", "data_structure", "fit_method"]
+
     def __init__(self):
         self.tree_error_ = None
         self.accuracy_ = None
@@ -50,10 +68,22 @@ class Predictor:
         self.depth_ = None
         self.is_fitted_ = False
         self.__internal_classifier = None
+        self.__internal_class = None
+        self.is_optimal_ = True
         self.statistics = None
 
-    def set_classifier(self, clf):
-        self.__internal_classifier = clf
+    # def set_classifier(self, clf):
+    #     self.__internal_classifier = clf
+
+    def set_internal_class(self, cls):
+        self.__internal_class = cls
+
+    def load_classifier(self):
+        args = list()
+        params = self.OPTIMAL_ARGS if self.is_optimal_ else self.LESS_GREEDY_ARGS
+        for arg in params:
+            args.append(getattr(self, arg))
+        self.__internal_classifier = self.__internal_class(*args)
 
     def fit(self, X, y=None):
 
@@ -69,6 +99,7 @@ class Predictor:
             assert_all_finite(X)
             X = check_array(X, dtype="float64")
 
+        self.load_classifier()
         self.__internal_classifier.train(X, y)
 
         tree = json.loads(self.__internal_classifier.tree)

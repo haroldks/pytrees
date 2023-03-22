@@ -12,13 +12,12 @@ class LGDTClassifier(Predictor, BaseEstimator, ClassifierMixin):
         fit_method="murtree",
     ):
         super().__init__()
+        self.is_optimal_ = False
         self.max_depth = max_depth
         self.min_sup = min_sup
         self.data_structure = data_structure
         self.fit_method = fit_method
-
-        clf = LGDTInternalClassifier(min_sup, max_depth, data_structure, fit_method)
-        self.set_classifier(clf)
+        self.set_internal_class(LGDTInternalClassifier)
 
 
 class IDKClassifier(Predictor, BaseEstimator, ClassifierMixin):
@@ -26,9 +25,9 @@ class IDKClassifier(Predictor, BaseEstimator, ClassifierMixin):
         self, min_sup=1, data_structure="reversible_sparse_bitset", fit_method="murtree"
     ):
         super().__init__()
+        self.is_optimal_ = False
         self.min_sup = min_sup
+        self.max_depth = 0
         self.data_structure = data_structure
         self.fit_method = fit_method
-
-        clf = LGDTInternalClassifier(min_sup, 0, data_structure, fit_method)
-        self.set_classifier(clf)
+        self.set_internal_class(LGDTInternalClassifier)

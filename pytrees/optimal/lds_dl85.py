@@ -29,6 +29,7 @@ class LDSDL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         cache_init_size=0,
     ):
         super().__init__()
+        self.is_optimal_ = True
         self.min_sup = min_sup
         self.max_depth = max_depth
         self.discrepancy_budget = discrepancy_budget
@@ -43,20 +44,4 @@ class LDSDL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         self.one_time_sort = one_time_sort
         self.heuristic = heuristic
 
-        clf = Dl85InternalClassifier(
-            min_sup,
-            max_depth,
-            discrepancy_budget,
-            discrepancy_strategy,
-            max_error,
-            max_time,
-            specialization,
-            lower_bound,
-            branching,
-            one_time_sort,
-            heuristic,
-            cache_init,
-            cache_init_size,
-        )
-
-        self.set_classifier(clf)
+        self.set_internal_class(Dl85InternalClassifier)

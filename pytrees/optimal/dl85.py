@@ -29,6 +29,8 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         super().__init__()
         self.min_sup = min_sup
         self.max_depth = max_depth
+        self.discrepancy_budget = 0
+        self.discrepancy_strategy = DiscrepancyStrategy.None_
         self.max_error = max_error
         self.max_time = max_time
         self.specialization = specialization
@@ -39,20 +41,4 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         self.one_time_sort = one_time_sort
         self.heuristic = heuristic
 
-        clf = Dl85InternalClassifier(
-            min_sup,
-            max_depth,
-            0,
-            DiscrepancyStrategy.None_,
-            max_error,
-            max_time,
-            specialization,
-            lower_bound,
-            branching,
-            one_time_sort,
-            heuristic,
-            cache_init,
-            cache_init_size,
-        )
-
-        self.set_classifier(clf)
+        self.set_internal_class(Dl85InternalClassifier)

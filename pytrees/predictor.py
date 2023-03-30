@@ -59,6 +59,13 @@ class Predictor:
     ]
 
     LESS_GREEDY_ARGS = ["min_sup", "max_depth", "data_structure", "fit_method"]
+    PARALLEL_LESS_GREEDY_ARGS = [
+        "min_sup",
+        "max_depth",
+        "data_structure",
+        "fit_method",
+        "num_threads",
+    ]
 
     def __init__(self):
         self.tree_error_ = None
@@ -70,6 +77,7 @@ class Predictor:
         self.__internal_classifier = None
         self.__internal_class = None
         self.is_optimal_ = True
+        self.is_parallel_ = False
         self.statistics = None
 
     # def set_classifier(self, clf):
@@ -79,10 +87,21 @@ class Predictor:
         self.__internal_class = cls
 
     def load_classifier(self):
+        # print("Loading classifier...")
+        # print("Parallel ? ", self.is_parallel_)
         args = list()
-        params = self.OPTIMAL_ARGS if self.is_optimal_ else self.LESS_GREEDY_ARGS
+        params = None
+        if self.is_optimal_:  # optimal
+            params = self.OPTIMAL_ARGS
+        else:  # less greedy
+            if self.is_parallel_:
+                params = self.PARALLEL_LESS_GREEDY_ARGS
+            else:
+                params = self.LESS_GREEDY_ARGS
+        # print("Params: ", params)
         for arg in params:
             args.append(getattr(self, arg))
+
         self.__internal_classifier = self.__internal_class(*args)
 
     def fit(self, X, y=None):

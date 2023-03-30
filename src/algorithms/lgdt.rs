@@ -38,6 +38,7 @@ impl LGDT {
         if max_depth <= 2 {
             fit_method(structure, min_sup, max_depth)
         } else {
+            // println!("Max depth : {}", max_depth);
             let mut solution_tree: Tree<NodeData> = Tree::new();
 
             let root_tree = fit_method(structure, min_sup, max_depth);
@@ -53,16 +54,18 @@ impl LGDT {
                 root_attribute = root.value.test;
             }
 
-            let root_index = solution_tree.get_root_index();
-            let _ = LGDT::build_tree_recurse(
-                structure,
-                &mut solution_tree,
-                root_index,
-                root_attribute,
-                min_sup,
-                max_depth - 1,
-                &fit_method,
-            );
+            if root_attribute.is_some() {
+                let root_index = solution_tree.get_root_index();
+                let _ = LGDT::build_tree_recurse(
+                    structure,
+                    &mut solution_tree,
+                    root_index,
+                    root_attribute,
+                    min_sup,
+                    max_depth - 1,
+                    &fit_method,
+                );
+            }
 
             solution_tree
         }
@@ -107,8 +110,14 @@ impl LGDT {
         } else {
             let mut parent_error = 0;
             for (i, val) in [false, true].iter().enumerate() {
-                let _ = structure.push((next.unwrap(), i));
+                // tree.print();
+                // if next.is_none(){
+                // }
+                // println!("Next: {:?}", (next, i));
+                // println!("Depth : {}", depth - 1);
+                let x = structure.push((next.unwrap(), i));
                 let child_tree = fit_method(structure, minsup, 2);
+                // child_tree.print();
                 let mut child_error = LGDT::get_tree_error(&child_tree);
                 if child_error == <usize>::MAX {
                     child_error = LGDT::create_leaf(tree, structure, index, !*val);

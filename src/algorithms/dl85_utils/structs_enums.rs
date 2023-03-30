@@ -6,7 +6,7 @@ use std::time::Duration;
 // Start: Structures used in the algorithm
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub(crate) struct Constraints {
+pub struct Constraints {
     pub max_depth: Depth,
     pub min_sup: Support,
     pub max_error: usize,

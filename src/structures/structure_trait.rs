@@ -1,4 +1,5 @@
-use crate::structures::structures_types::{Item, Position, Support};
+use crate::structures::binary_tree::{NodeData, Tree};
+use crate::structures::structures_types::{Bitset, Index, Item, LeafInfo, Position, Support};
 
 pub trait Structure {
     fn num_attributes(&self) -> usize;
@@ -19,4 +20,16 @@ pub trait Structure {
         }
         self.support()
     }
+}
+
+pub trait BitsetTrait {
+    fn extract_leaf_bitvector(
+        &mut self,
+        tree: &Tree<NodeData>,
+        index: Index,
+        position: &mut Vec<Item>,
+        collector: &mut Vec<LeafInfo>,
+    );
+
+    fn set_state(&mut self, state: &Bitset, position: &Position);
 }

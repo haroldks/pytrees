@@ -1,10 +1,12 @@
 use crate::algorithms::dl85_utils::slb::Similarity;
 use crate::dataset::data_trait::Dataset;
+use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::bitsets_structure::BitsetStructure;
 use crate::structures::caching::trie::DataTrait;
-use crate::structures::structure_trait::Structure;
+use crate::structures::structure_trait::{BitsetTrait, Structure};
 use crate::structures::structures_types::{
-    Bitset, BitsetStackState, BitsetStructData, Item, Position, Support,
+    Bitset, BitsetStackState, BitsetStructData, Index, Item, LeafInfo, Position, StateCollection,
+    Support,
 };
 
 #[derive(Clone)]
@@ -188,6 +190,74 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     }
     fn get_position(&self) -> &Position {
         &self.position
+    }
+}
+
+impl<'data> BitsetTrait for RSparseBitsetStructure<'data> {
+    fn extract_leaf_bitvector(
+        &mut self,
+        tree: &Tree<NodeData>,
+        index: Index,
+        position: &mut Vec<Item>,
+        collector: &mut Vec<LeafInfo>,
+    ) {
+        let mut left_index = 0;
+        let mut right_index = 0;
+        let mut attribute = None;
+        if let Some(node) = tree.get_node(index) {
+            left_index = node.left;
+            right_index = node.right;
+            attribute = node.value.test;
+        }
+
+        if left_index == right_index {
+            let mut error = <usize>::MAX;
+            if let Some(node) = tree.get_node(index) {
+                error = node.value.error;
+            }
+
+            // Is leaf
+            collector.push(LeafInfo {
+                index,
+                position: position.clone(),
+                bitset: self.get_last_state_bitset(),
+                error,
+            }); // Bizarre ca
+                // position.pop();
+        }
+
+        if left_index > 0 {
+            if let Some(left_node) = tree.get_node(left_index) {
+                let item = (attribute.unwrap(), 0);
+                position.push(item);
+                self.push(item);
+                self.extract_leaf_bitvector(tree, left_index, position, collector);
+                position.pop();
+                self.backtrack()
+            }
+        }
+
+        if right_index > 0 {
+            if let Some(right_node) = tree.get_node(right_index) {
+                let item = (attribute.unwrap(), 1);
+                position.push(item);
+                self.push(item);
+                self.extract_leaf_bitvector(tree, right_index, position, collector);
+                position.pop();
+                self.backtrack()
+            }
+        }
+    }
+
+    fn set_state(&mut self, state: &Bitset, position: &Position) {
+        self.position = position.clone();
+        let mut new_state = vec![Vec::with_capacity(self.num_attributes); self.inputs.chunks];
+        for (i, s) in new_state.iter_mut().enumerate() {
+            s.push(state[i]);
+        }
+        self.state = new_state;
+        self.support = Support::MAX;
+        self.labels_support.clear();
     }
 }
 

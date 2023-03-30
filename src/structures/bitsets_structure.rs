@@ -1,8 +1,12 @@
+use crate::algorithms::dl85_utils::structs_enums::HasIntersected::No;
 use crate::dataset::data_trait::Dataset;
-use crate::structures::structure_trait::Structure;
+use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
+use crate::structures::structure_trait::{BitsetTrait, Structure};
 use crate::structures::structures_types::{
-    Bitset, BitsetStackState, BitsetStructData, Item, Position, Support,
+    Bitset, BitsetStackState, BitsetStructData, Index, Item, LeafInfo, Position, StateCollection,
+    Support,
 };
+use pyo3::ffi::lenfunc;
 
 #[derive(Clone)]
 pub struct BitsetStructure<'data> {
@@ -126,6 +130,71 @@ impl<'data> Structure for BitsetStructure<'data> {
     }
 }
 
+impl<'data> BitsetTrait for BitsetStructure<'data> {
+    fn extract_leaf_bitvector(
+        &mut self,
+        tree: &Tree<NodeData>,
+        index: Index,
+        position: &mut Vec<Item>,
+        collector: &mut Vec<LeafInfo>,
+    ) {
+        let mut left_index = 0;
+        let mut right_index = 0;
+        let mut attribute = None;
+        if let Some(node) = tree.get_node(index) {
+            left_index = node.left;
+            right_index = node.right;
+            attribute = node.value.test;
+        }
+
+        if left_index == right_index {
+            let mut error = <usize>::MAX;
+            if let Some(node) = tree.get_node(index) {
+                error = node.value.error;
+            }
+
+            // Is leaf
+            collector.push(LeafInfo {
+                index,
+                position: position.clone(),
+                bitset: self.get_last_state_bitset(),
+                error,
+            }); // Bizarre ca
+                // position.pop();
+        }
+
+        if left_index > 0 {
+            if let Some(left_node) = tree.get_node(left_index) {
+                let item = (attribute.unwrap(), 0);
+                position.push(item);
+                self.push(item);
+                self.extract_leaf_bitvector(tree, left_index, position, collector);
+                position.pop();
+                self.backtrack()
+            }
+        }
+
+        if right_index > 0 {
+            if let Some(right_node) = tree.get_node(right_index) {
+                let item = (attribute.unwrap(), 1);
+                position.push(item);
+                self.push(item);
+                self.extract_leaf_bitvector(tree, right_index, position, collector);
+                position.pop();
+                self.backtrack()
+            }
+        }
+    }
+
+    fn set_state(&mut self, state: &Bitset, position: &Position) {
+        self.position = position.clone();
+        self.state = BitsetStackState::with_capacity(self.num_attributes);
+        self.state.push(state.clone());
+        self.support = Support::MAX;
+        self.labels_support.clear();
+    }
+}
+
 impl<'data> BitsetStructure<'data> {
     pub fn format_input_data<T>(data: &T) -> BitsetStructData
     where
@@ -198,6 +267,14 @@ impl<'data> BitsetStructure<'data> {
         self.state.last()
     }
 
+    pub(crate) fn get_last_state_bitset(&self) -> Bitset {
+        let state = self.state.last().map(|state| state.clone());
+        if let Some(state) = state {
+            return state;
+        }
+        vec![0u64; self.inputs.chunks]
+    }
+
     fn pushing(&mut self, item: Item) {
         let mut new_state = Bitset::new();
         self.support = 0;
@@ -207,6 +284,12 @@ impl<'data> BitsetStructure<'data> {
         }
 
         if let Some(last_state) = self.state.last() {
+            // if last_state.len() != self.inputs.chunks {
+            //     println!("Last state: {:?}", last_state.len());
+            //     print!("Last State {:?}", last_state);
+            //     print!("All state : {:?}", self.state);
+            //     println!("Chunks: {:?}", self.inputs.chunks);
+            // }
             let feature_vec = &self.inputs.inputs[item.0];
             for (i, long) in feature_vec.iter().enumerate() {
                 let word = match item.1 {

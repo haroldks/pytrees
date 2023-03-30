@@ -19,7 +19,7 @@ use crate::algorithms::dl85_utils::structs_enums::{
 };
 use crate::algorithms::idk::IDK;
 use crate::heuristics::{GiniIndex, Heuristic, InformationGain, InformationGainRatio, NoHeuristic};
-use crate::pycore::less_greedy::LGDTInternalClassifier;
+use crate::pycore::less_greedy::{LGDTInternalClassifier, ParallelLGDTInternalClassifier};
 use crate::pycore::optimal::Dl85InternalClassifier;
 use crate::structures::caching::trie::Data;
 use crate::structures::raw_binary_structure::RawBinaryStructure;
@@ -59,5 +59,6 @@ fn optimal(_py: Python, module: &PyModule) -> PyResult<()> {
 #[pymodule]
 fn lgdt(_py: Python, module: &PyModule) -> PyResult<()> {
     module.add_class::<LGDTInternalClassifier>()?;
+    module.add_class::<ParallelLGDTInternalClassifier>()?;
     Ok(())
 }

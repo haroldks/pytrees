@@ -25,7 +25,7 @@ pub type BitsetStackState = Vec<Bitset>;
 
 // Tree types
 pub type Index = usize;
-
+pub type StateCollection = Vec<(Vec<Item>, Bitset, Index)>;
 // Double Pointer Structure
 
 pub struct DoublePointerData {
@@ -33,4 +33,12 @@ pub struct DoublePointerData {
     pub(crate) target: Vec<usize>,
     pub(crate) num_labels: usize,
     pub(crate) num_attributes: usize,
+}
+
+#[derive(Debug)]
+pub struct LeafInfo {
+    pub(crate) index: Index,
+    pub(crate) position: Position,
+    pub(crate) bitset: Bitset,
+    pub(crate) error: usize,
 }

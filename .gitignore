@@ -184,12 +184,21 @@ data/*
 !test_data/mushroom.txt
 
 experiments/data/raw/*
+experiments/data/parallel_datasets/
+experiments/data/continuous/
+experiments/data/binarized/
 !experiments/data/raw/datasetsDL
 
 experiments/data/cleaned/
 experiments/private_experiments/
-
+experiments/cart/
+experiments/gdt/
+experiments/generated_data/
+experiments/para*/
+experiments/plots_continuous_binned/
 
 !experiments/runtime_evaluation.py
 !experiments/synthetic_data.py
 TODO.md
+*.csv
+experiments/ecai_exps/

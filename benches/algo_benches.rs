@@ -42,7 +42,7 @@ pub fn anneal_rsparse_benchmark(c: &mut Criterion) {
 }
 
 fn compare_struct_on_dataset(c: &mut Criterion) {
-    let filename = "test_data/mushroom.txt";
+    let filename = "test_data/letter.txt";
     let dataset = BinaryDataset::load(filename, false, 0.0);
     let mut raw_struct = RawBinaryStructure::new(&dataset);
     let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
@@ -53,15 +53,15 @@ fn compare_struct_on_dataset(c: &mut Criterion) {
     let mut group = c.benchmark_group("LGDT");
     // group.sampling_mode(SamplingMode::Flat);
 
-    for depth in 1..11 {
-        for minsup in [1, 5] {
+    for depth in [2, 3, 5, 7] {
+        for minsup in [5] {
             let parameter = (minsup, depth);
             let parameter_string = format!("s_{}_d_{}", minsup, depth);
 
             group.bench_with_input(
                 BenchmarkId::new("raw", &parameter_string),
                 &parameter,
-                |b, (depth, minsup)| {
+                |b, (minsup, depth)| {
                     b.iter(|| {
                         LGDT::fit(
                             &mut raw_struct,
@@ -72,38 +72,38 @@ fn compare_struct_on_dataset(c: &mut Criterion) {
                     })
                 },
             );
-            group.bench_with_input(
-                BenchmarkId::new("horizontal", &parameter_string),
-                &parameter,
-                |b, (depth, minsup)| {
-                    b.iter(|| {
-                        LGDT::fit(
-                            &mut hz_struct,
-                            black_box(*minsup),
-                            black_box(*depth),
-                            MurTree::fit,
-                        )
-                    })
-                },
-            );
-            group.bench_with_input(
-                BenchmarkId::new("bitset", &parameter_string),
-                &(depth, minsup),
-                |b, (depth, minsup)| {
-                    b.iter(|| {
-                        LGDT::fit(
-                            &mut bitset_struct,
-                            black_box(*minsup),
-                            black_box(*depth),
-                            MurTree::fit,
-                        )
-                    })
-                },
-            );
+            // group.bench_with_input(
+            //     BenchmarkId::new("horizontal", &parameter_string),
+            //     &parameter,
+            //     |b, (minsup, depth)| {
+            //         b.iter(|| {
+            //             LGDT::fit(
+            //                 &mut hz_struct,
+            //                 black_box(*minsup),
+            //                 black_box(*depth),
+            //                 MurTree::fit,
+            //             )
+            //         })
+            //     },
+            // );
+            // group.bench_with_input(
+            //     BenchmarkId::new("bitset", &parameter_string),
+            //     &parameter,
+            //     |b, (minsup, depth)| {
+            //         b.iter(|| {
+            //             LGDT::fit(
+            //                 &mut bitset_struct,
+            //                 black_box(*minsup),
+            //                 black_box(*depth),
+            //                 MurTree::fit,
+            //             )
+            //         })
+            //     },
+            // );
             group.bench_with_input(
                 BenchmarkId::new("rsparse", &parameter_string),
-                &(depth, minsup),
-                |b, (depth, minsup)| {
+                &parameter,
+                |b, (minsup, depth)| {
                     b.iter(|| {
                         LGDT::fit(
                             &mut rsparse_struct,
@@ -120,8 +120,9 @@ fn compare_struct_on_dataset(c: &mut Criterion) {
 }
 
 criterion_group!(
-    benches,
-    compare_struct_on_dataset,
+    name = benches;
+    config = Criterion::default().sample_size(30);
+    targets = compare_struct_on_dataset
     //anneal_horiz_benchmark,
     //anneal_bitset_benchmark,
     //anneal_rsparse_benchmark

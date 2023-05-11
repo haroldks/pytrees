@@ -316,7 +316,7 @@ where
     match constraints.max_depth == 0 {
         true => IDK::fit(structure, constraints.min_sup, fit_method),
         false => match constraints.parallel {
-            true => ParallelLGDT::fit_parallel(
+            true => ParallelLGDT::fit(
                 structure,
                 constraints.min_sup,
                 constraints.max_depth,

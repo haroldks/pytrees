@@ -1,5 +1,5 @@
 from sklearn.ensemble import BaggingClassifier
-from pydl85 import DL85Classifier
+from pydl85 import DL85Classifier, Cache_Type
 from pytrees.lgdt import LGDTClassifier
 from sklearn.tree import DecisionTreeClassifier
 
@@ -61,7 +61,9 @@ BAGGED_LDGT_IG = {
 
 DL85 = {
     "name": "dl8.5",
-    "instance": DL85Classifier(min_sup=0, max_depth=0, time_limit=600),
+    "instance": DL85Classifier(
+        min_sup=0, max_depth=0, time_limit=600, cache_type=Cache_Type.Cache_HashCover
+    ),
 }
 
 LGDT_SPARSE = {
@@ -85,5 +87,12 @@ LGDT_HZ = {
     "name": "lgdt_error_horizontal",
     "instance": LGDTClassifier(
         min_sup=0, max_depth=0, data_structure="horizontal_data", fit_method="murtree"
+    ),
+}
+
+LGDT_RAW = {
+    "name": "lgdt_error_raw",
+    "instance": LGDTClassifier(
+        min_sup=0, max_depth=0, data_structure="raw_binary_data", fit_method="murtree"
     ),
 }

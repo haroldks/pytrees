@@ -4,33 +4,40 @@ import pandas as pd
 from pytrees.lgdt import LGDTClassifier
 
 
-# import sys
-# import graphviz
-# data = np.genfromtxt("data/raw/datasetsDL/german-credit.txt")
-# X, y = data[:, 1:], data[:, 0]
-# d = 5
-# clf = LGDTClassifier(
-#     min_sup=5,
-#     max_depth=d
-# )
-# clf.fit(X, y)
-# obj = graphviz.Source(clf.export_to_graphviz_dot())
-# obj.view(f"tree_{d}")
-#
-#
-# sys.exit(0)
-#
+import sys
+import graphviz
+
+data = np.genfromtxt("data/raw/datasetsDL/german-credit.txt")
+X, y = data[:, 1:], data[:, 0]
+d = 5
+is_parallel = True
+clf = LGDTClassifier(
+    min_sup=5,
+    max_depth=d,
+    parallel=is_parallel,
+    num_threads=0,
+    data_structure="reversible_sparse_bitset",
+    fit_method="murtree",
+)
+clf.fit(X, y)
+obj = graphviz.Source(clf.export_to_graphviz_dot())
+obj.view(f"tree_{d}_is_parallel_{is_parallel}")
 
 
-data_dir = "data/raw/datasetsDL/"
+sys.exit(0)
+
+
+data_dir = "data/parallel_datasets/"
 n_folds = range(5)
 min_sup = 5
 depths = range(5, 8)
 results = []
-n_threads = range(0, 9)
+n_threads = range(0, 8)
 for file in os.listdir(data_dir):
+    print("Loading file: ", file)
     file_path = os.path.join(data_dir, file)
     data = np.genfromtxt(file_path, delimiter=" ")
+    print("Loaded file: ", file)
     file_name = file.split(".")[0]
     X, y = data[:, 1:], data[:, 0]
     for depth in depths:
@@ -77,7 +84,7 @@ for file in os.listdir(data_dir):
     # break
 
 df = pd.DataFrame(results)
-df.to_csv("parallelism_comparison.csv", index=False)
+df.to_csv("parallelism_comparison_synthetic.csv", index=False)
 
 # df = pd.read_csv("parallelism_comparison.csv")
 

@@ -33,55 +33,6 @@ impl ParallelLGDT {
             error: None,
         }
     }
-    //
-    // pub fn fit<S, F>(
-    //     structure: &mut S,
-    //     min_sup: Support,
-    //     max_depth: Depth,
-    //     fit_method: F,
-    // ) -> Tree<NodeData>
-    //     where
-    //         S: Structure + BitsetTrait,
-    //         F: Fn(&mut S, Support, Depth) -> Tree<NodeData>,
-    // {
-    //     if max_depth <= 2 {
-    //         let tree = fit_method(structure, min_sup, max_depth);
-    //         let mut collection = vec![];
-    //         tree
-    //     } else {
-    //         let mut solution_tree: Tree<NodeData> = Tree::new();
-    //
-    //         let root_tree = fit_method(structure, min_sup, max_depth);
-    //         let mut root_attribute = None;
-    //
-    //         if let Some(root) = root_tree.get_node(root_tree.get_root_index()) {
-    //             solution_tree.add_root(TreeNode {
-    //                 value: root.value,
-    //                 index: 0,
-    //                 left: 0,
-    //                 right: 0,
-    //             });
-    //             root_attribute = root.value.test;
-    //         }
-    //
-    //         let root_index = solution_tree.get_root_index();
-    //         let _ = Self::build_tree_recurse(
-    //             structure,
-    //             &mut solution_tree,
-    //             root_index,
-    //             root_attribute,
-    //             min_sup,
-    //             max_depth - 1,
-    //             &fit_method,
-    //         );
-    //         let mut collection = vec![];
-    //         let mut position = vec![];
-    //         let index = 0;
-    //         structure.extract_leaf_bitvector(&solution_tree, index, &mut position, &mut collection);
-    //
-    //         solution_tree
-    //     }
-    // }
 
     fn remove_below_depth(
         tree: &mut Tree<NodeData>,
@@ -121,13 +72,7 @@ impl ParallelLGDT {
         }
     }
 
-    pub fn fit_parallel<S, F>(
-        // tree: &mut Tree<NodeData>,
-        // state_collection: StateCollection,
-        // structure: &mut S,
-        // min_sup: Support,
-        // depth: Depth,
-        // fit_method: F,
+    pub fn fit<S, F>(
         structure: &mut S,
         min_sup: Support,
         max_depth: Depth,
@@ -141,23 +86,17 @@ impl ParallelLGDT {
         let method = Arc::new(fit_method);
 
         if max_depth <= 3 {
-            return LGDT::fit(structure, min_sup, max_depth, method.clone().as_ref());
+            return LGDT::fit(structure, min_sup, max_depth, method.as_ref());
         }
 
-        let mut tree = LGDT::fit(structure, min_sup, 4, method.clone().as_ref());
+        let mut tree = LGDT::fit(structure, min_sup, 4, method.as_ref());
         let root_index = tree.get_root_index();
         Self::remove_below_depth(&mut tree, 3, root_index, &mut vec![]);
-        // tree.print();
         let mut state_collection = vec![];
         let mut position = vec![];
         let index = 0;
         structure.extract_leaf_bitvector(&tree, index, &mut position, &mut state_collection);
-        // for leaf_info in &state_collection {
-        //     println!("State : {:?}", leaf_info)
-        // }
-        // tree.print();
-        // println!();
-        // println!();
+
         let remaining_depth = max_depth - 3;
 
         let pool = rayon::ThreadPoolBuilder::new()
@@ -172,7 +111,6 @@ impl ParallelLGDT {
         pool.scope(move |s| {
             for collection in state_collection {
                 if collection.error == 0 {
-                    // println!("Index {:?}, Droped", collection.index);
                     continue;
                 }
                 let mut sub_struct = thread_structure.clone();
@@ -180,10 +118,7 @@ impl ParallelLGDT {
                 let tree_handler = main_handler.clone();
                 let method = method.clone();
                 s.spawn(move |_| {
-                    // println!("Position {:?}", collection.position);
                     let tr = LGDT::fit(&mut sub_struct, min_sup, remaining_depth, method.as_ref());
-                    // tr.print();
-                    // println!();
                     let mut out = tree_handler.lock().unwrap();
                     LGDT::move_tree(&mut out, collection.index, &tr, tr.get_root_index());
                     drop(out);
@@ -192,7 +127,7 @@ impl ParallelLGDT {
         });
 
         let x = output.lock().unwrap();
-        return x.clone();
+        x.clone()
     }
 
     fn build_tree_recurse<S, F>(
@@ -298,39 +233,9 @@ mod parallel_lgdt_test {
 
         let steps = 1;
         let expected_errors = [151usize, 137, 119, 108, 99, 90, 71, 55, 48, 41];
-        //
-        // for _ in 0..steps {
-        //     let mut rng = rand::thread_rng();
-        //     let depth = 3;
-        //     // let mut a = LGDT::fit(&mut structure, 1, 5, MurTree::fit);
-        //     // a.print();
-        //     // break;
-        //     let (mut a,mut collection) = ParallelLGDT::fit_parallel(&mut structure, 1, depth, MurTree::fit);
-        //     let error = ParallelLGDT::get_tree_error(&a);
-        //     a.print();
-        //     // print!("Position {:?}", structure.get_position());
-        //     // println!("State {:?}", structure.get_last_state_bitset());
-        //
-        //     let mut position = vec![];
-        //     let mut collection = vec![];
-        //     let index = 0;
-        //     structure.extract_leaf_bitvector(&a, index, &mut position, &mut collection);
-        //     for collected in &collection {
-        //         // println!("Path {:?}, Bitset {:?}, size {:?}", collected.0, collected.1, collected.1.len());
-        //     }
-        //     let a = ParallelLGDT::fit_parallel(&mut structure,  5, 7, 8, MurTree::fit);
-        //
-        structure.push((10, 1));
-        structure.push((19, 1));
-        structure.push((5, 1));
-        println!("SUpport : {}", structure.support());
-        let arbre = LGDT::fit(&mut structure, 5, 3, MurTree::fit);
-        arbre.print();
-        //     //
-        //     let a = LGDT::fit(&mut structure,  5, 7, MurTree::fit);
-        println!();
-        // a.print();
 
-        // assert_eq!(expected_errors.contains(&error), true);
+        let a = ParallelLGDT::fit(&mut structure, 5, 7, 8, MurTree::fit);
+        println!();
+        a.print();
     }
 }

@@ -25,19 +25,18 @@ mod post_process;
 mod structures;
 
 fn main() {
-    let dataset = BinaryDataset::load("test_data/iris_multi.txt", false, 0.0);
+    let dataset = BinaryDataset::load("test_data/hepatitis.txt", false, 0.0);
     let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-    println!("Format data: {:?}", bitset_data.targets);
     let mut structure = RSparseBitsetStructure::new(&bitset_data);
 
-    // let mut heuristic: Box<dyn Heuristic> = Box::new(NoHeuristic::default());
-    //
+    let mut heuristic: Box<dyn Heuristic> = Box::new(NoHeuristic::default());
+
     // let mut algo: DL85<'_, _, Data> = DL85::new(
     //     1,
     //     2,
     //     <usize>::MAX,
     //     600,
-    //     Specialization::Murtree,
+    //     Specialization::None,
     //     LowerBoundHeuristic::None,
     //     BranchingType::None,
     //     CacheInit::WithMemoryDynamic,
@@ -46,7 +45,7 @@ fn main() {
     //     heuristic.as_mut(),
     // );
 
-    let algo = LGDT::fit(&mut structure, 1, 2, InfoGain::fit);
+    let algo = LGDT::fit(&mut structure, 5, 2, InfoGain::fit);
     algo.print();
     // algo.fit(&mut structure);
     // algo.tree.print();

@@ -1,13 +1,12 @@
 [project]
-name = "pytrees_internal"
+name = "pytrees-rs"
 version = "0.1.0"
 dependencies = [
 "scikit-learn",
+"pandas",
+"seaborn",
+"pydl8.5",
 ]
-
-
-[project.optional-dependencies]
-experiments = ["pandas", "seaborn", "pydl8.5"]
 
 [build-system]
 requires = ["setuptools", "wheel", "setuptools-rust"]

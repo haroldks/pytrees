@@ -1,6 +1,6 @@
 from sklearn.base import BaseEstimator, ClassifierMixin
-from pytrees.predictor import (
-    Predictor,
+from pytrees.predictor import Predictor
+from pytrees.enum_params import (
     Specialization,
     LowerBound,
     Branching,

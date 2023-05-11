@@ -1,4 +1,6 @@
 from sklearn.base import BaseEstimator, ClassifierMixin
+
+from pytrees.enum_params import DataStructure, FitMethod
 from pytrees.predictor import Predictor
 from pytrees_internal.lgdt import LGDTInternalClassifier, ParallelLGDTInternalClassifier
 
@@ -10,8 +12,8 @@ class LGDTClassifier(Predictor, BaseEstimator, ClassifierMixin):
         max_depth=1,
         parallel=False,
         num_threads=0,
-        data_structure="reversible_sparse_bitset",
-        fit_method="murtree",
+        data_structure=DataStructure.ReversibleBitset,
+        fit_method=FitMethod.MurTree,
     ):
         super().__init__()
         self.is_optimal_ = False
@@ -30,7 +32,10 @@ class LGDTClassifier(Predictor, BaseEstimator, ClassifierMixin):
 
 class IDKClassifier(Predictor, BaseEstimator, ClassifierMixin):
     def __init__(
-        self, min_sup=1, data_structure="reversible_sparse_bitset", fit_method="murtree"
+        self,
+        min_sup=1,
+        data_structure=DataStructure.ReversibleBitset,
+        fit_method=FitMethod.MurTree,
     ):
         super().__init__()
         self.is_optimal_ = False

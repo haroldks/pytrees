@@ -66,18 +66,18 @@ pub(crate) struct LGDTInternalClassifier {
 #[pymethods]
 impl LGDTInternalClassifier {
     #[new]
-    fn new(min_sup: Support, max_depth: Depth, data_structure: &str, fit_method: &str) -> Self {
+    fn new(min_sup: Support, max_depth: Depth, data_structure: usize, fit_method: usize) -> Self {
         let data_structure = match data_structure {
-            "regular_bitset" => DataStructure::RegularBitset,
-            "reversible_sparse_bitset" => DataStructure::ReversibleSparseBitset,
-            "horizontal_data" => DataStructure::HorizontalData,
-            "raw_binary_data" => DataStructure::RawBinaryData,
+            0 => DataStructure::RawBinaryData,
+            1 => DataStructure::HorizontalData,
+            2 => DataStructure::RegularBitset,
+            3 => DataStructure::ReversibleSparseBitset,
             _ => panic!("Invalid data structure"),
         };
 
         let method = match fit_method {
-            "info_gain" => FitMethod::InfoGain,
-            "murtree" => FitMethod::Murtree,
+            0 => FitMethod::Murtree,
+            1 => FitMethod::InfoGain,
             _ => panic!("Invalid fit method"),
         };
 
@@ -155,19 +155,19 @@ impl ParallelLGDTInternalClassifier {
     fn new(
         min_sup: Support,
         max_depth: Depth,
-        data_structure: &str,
-        fit_method: &str,
+        data_structure: usize,
+        fit_method: usize,
         num_threads: usize,
     ) -> Self {
         let data_structure = match data_structure {
-            "regular_bitset" => DataStructure::RegularBitset,
-            "reversible_sparse_bitset" => DataStructure::ReversibleSparseBitset,
+            2 => DataStructure::RegularBitset,
+            3 => DataStructure::ReversibleSparseBitset,
             _ => panic!("Invalid data structure"),
         };
 
         let method = match fit_method {
-            "info_gain" => FitMethod::InfoGain,
-            "murtree" => FitMethod::Murtree,
+            0 => FitMethod::Murtree,
+            1 => FitMethod::InfoGain,
             _ => panic!("Invalid fit method"),
         };
 

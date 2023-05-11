@@ -4,8 +4,8 @@ from pytrees.lgdt import LGDTClassifier
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from pytrees.optimal.lds_dl85 import LDSDL85Classifier
-from pytrees.predictor import (
+# from pytrees.optimal.lds_dl85 import LDSDL85Classifier
+from pytrees import (
     Specialization,
     LowerBound,
     Branching,

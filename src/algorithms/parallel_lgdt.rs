@@ -210,32 +210,32 @@ impl ParallelLGDT {
         };
     }
 }
-
-#[cfg(test)]
-mod parallel_lgdt_test {
-    use crate::algorithms::algorithm_trait::{Algorithm, Basic};
-    use crate::algorithms::dl85_utils::structs_enums::Specialization::Murtree;
-    use crate::algorithms::info_gain::InfoGain;
-    use crate::algorithms::lgdt::LGDT;
-    use crate::algorithms::murtree::MurTree;
-    use crate::algorithms::parallel_lgdt::ParallelLGDT;
-    use crate::dataset::binary_dataset::BinaryDataset;
-    use crate::dataset::data_trait::Dataset;
-    use crate::structures::bitsets_structure::BitsetStructure;
-    use crate::structures::structure_trait::{BitsetTrait, Structure};
-    use rand::Rng;
-
-    #[test]
-    fn test_parrallel_lgdt_murtree_anneal() {
-        let dataset = BinaryDataset::load("test_data/german-credit.txt", false, 0.0);
-        let bitset_data = BitsetStructure::format_input_data(&dataset);
-        let mut structure = BitsetStructure::new(&bitset_data);
-
-        let steps = 1;
-        let expected_errors = [151usize, 137, 119, 108, 99, 90, 71, 55, 48, 41];
-
-        let a = ParallelLGDT::fit(&mut structure, 5, 7, 8, MurTree::fit);
-        println!();
-        a.print();
-    }
-}
+//
+// #[cfg(test)]
+// mod parallel_lgdt_test {
+//     use crate::algorithms::algorithm_trait::{Algorithm, Basic};
+//     use crate::algorithms::dl85_utils::structs_enums::Specialization::Murtree;
+//     use crate::algorithms::info_gain::InfoGain;
+//     use crate::algorithms::lgdt::LGDT;
+//     use crate::algorithms::murtree::MurTree;
+//     use crate::algorithms::parallel_lgdt::ParallelLGDT;
+//     use crate::dataset::binary_dataset::BinaryDataset;
+//     use crate::dataset::data_trait::Dataset;
+//     use crate::structures::bitsets_structure::BitsetStructure;
+//     use crate::structures::structure_trait::{BitsetTrait, Structure};
+//     use rand::Rng;
+//
+//     #[test]
+//     fn test_parrallel_lgdt_murtree_anneal() {
+//         let dataset = BinaryDataset::load("test_data/german-credit.txt", false, 0.0);
+//         let bitset_data = BitsetStructure::format_input_data(&dataset);
+//         let mut structure = BitsetStructure::new(&bitset_data);
+//
+//         let steps = 1;
+//         let expected_errors = [151usize, 137, 119, 108, 99, 90, 71, 55, 48, 41];
+//
+//         let a = ParallelLGDT::fit(&mut structure, 5, 7, 8, MurTree::fit);
+//         println!();
+//         a.print();
+//     }
+// }

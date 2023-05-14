@@ -2,9 +2,8 @@ name: Build and publish Python package
 
 on:
   push:
-    branches: ["master"]
     tags:
-      - '*'
+      - 'v*'
 
 jobs:
   build_wheels:

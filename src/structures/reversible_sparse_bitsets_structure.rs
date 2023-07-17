@@ -8,6 +8,11 @@ use crate::structures::structures_types::{
     Bitset, BitsetStackState, BitsetStructData, Index, Item, LeafInfo, Position, StateCollection,
     Support,
 };
+use itertools::{max, min};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::prelude::IndexedParallelIterator;
+use std::cmp;
+// use rayon::prelude::IntoParallelRefIterator;
 
 #[derive(Clone)]
 pub struct RSparseBitsetStructure<'data> {
@@ -366,6 +371,35 @@ impl<'data> RSparseBitsetStructure<'data> {
         }
     }
 
+    pub(crate) fn parallel_temp_push(&mut self, item: Item) -> Support {
+        if let Some(limit) = self.limit.last() {
+            let mut limit = *limit;
+            if limit >= 0 {
+                let cursors = &self.index[..(limit + 1) as usize];
+                let min_len = cmp::max(1, cursors.len() / rayon::current_num_threads());
+                // println!("cursors {:?}", cursors);
+                let feature_vec = &self.inputs.inputs[item.0];
+                let value: usize = cursors
+                    .into_par_iter()
+                    .with_min_len(min_len)
+                    .map(|&cursor| {
+                        let mut val = 0;
+                        if let Some(last) = self.state[cursor].last() {
+                            val = match item.1 {
+                                0 => last & !feature_vec[cursor],
+                                _ => last & feature_vec[cursor],
+                            };
+                        }
+                        return val.count_ones() as Support;
+                    })
+                    .sum();
+                return value;
+            }
+        }
+
+        0
+    }
+
     // Start : Methods to evaluate the structure fo similarity lower bound
 
     pub fn get_last_state_bitset(&self) -> Bitset {
@@ -431,6 +465,8 @@ mod test_rsparse_bitset {
     use crate::structures::bitsets_structure::BitsetStructure;
     use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
     use crate::structures::structure_trait::Structure;
+    use rayon::prelude::*;
+    use std::time::Instant;
 
     #[test]
     fn load_sparse_bitset() {
@@ -577,5 +613,45 @@ mod test_rsparse_bitset {
             structure.labels_support().iter().eq([187, 625].iter()),
             true
         );
+    }
+
+    #[test]
+    fn parallel_temp_push_test() {
+        let dataset = BinaryDataset::load(
+            "experiments/data/parallel_datasets/250_500000.csv",
+            false,
+            0.0,
+        );
+        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
+        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        let num_attributes = structure.num_attributes();
+        println!("Num attributes: {:?}", num_attributes);
+        println!("Num labels: {:?}", structure.num_labels());
+        println!("Support: {:?}", structure.support());
+        // assert_eq!(structure.temp_push((43, 1)), 26);
+        //
+        // assert_eq!(structure.temp_push((43, 0)), 786);
+        //
+        // assert_eq!(structure.parallel_temp_push((43, 1)), 26);
+        //
+        // assert_eq!(structure.parallel_temp_push((43, 0)), 786);
+
+        // Evaluate parallel temp push running time
+
+        let start = Instant::now();
+        let n = 100;
+        for _ in 0..n {
+            structure.parallel_temp_push((20, 1));
+        }
+        let duration = start.elapsed().as_micros() as f64 / n as f64;
+        println!("Parallel temp push time: {:?} us", duration);
+
+        structure.reset();
+        let start = Instant::now();
+        for _ in 0..n {
+            structure.temp_push((20, 1));
+        }
+        let duration = start.elapsed().as_micros() as f64 / n as f64;
+        println!("Sequential temp push time: {:?} us", duration);
     }
 }

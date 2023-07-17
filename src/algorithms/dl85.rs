@@ -11,6 +11,7 @@ use crate::heuristics::Heuristic;
 use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::caching::trie::{DataTrait, Trie, TrieNode};
 use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
+use crate::structures::rsparse_trail::RSparseTrail;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Depth, Index, Item, Support};
 use std::cmp::{max, min};
@@ -19,6 +20,8 @@ use std::fmt::Debug;
 use std::time::{Duration, Instant};
 
 // TODO : Is not working for generic types because of the trait bounds and the use of external methods
+
+pub type Trail<'a> = RSparseTrail<'a>;
 
 pub struct DL85<'heur, H, T>
 where
@@ -85,7 +88,7 @@ where
         }
     }
 
-    pub fn fit(&mut self, structure: &mut RSparseBitsetStructure) {
+    pub fn fit(&mut self, structure: &mut Trail) {
         // BEGIN STEP: Setup everything in the statist Update Statistics structures
         self.statistics.num_attributes = structure.num_attributes();
         let distribution = structure.labels_support();
@@ -166,7 +169,7 @@ where
 
     fn recursion(
         &mut self,
-        structure: &mut RSparseBitsetStructure,
+        structure: &mut Trail,
         depth: Depth,
         upper_bound: usize,
         parent_item: Item,
@@ -177,7 +180,10 @@ where
         similarity_data: &mut SimilarDatasets<T>,
     ) -> (usize, ReturnCondition, HasIntersected) {
         // TODO: Check if there is not enough time left (Maybe this can be done outside of the recursion)
-
+        // println!("Recursion depth: {depth}", depth = depth);
+        // println!("Position: {:?}", structure.get_position());
+        // println!("Support: {support}", support = structure.support());
+        // println!("Label support: {:?}", structure.labels_support());
         let mut child_upper_bound = upper_bound;
         let current_support = structure.support();
 
@@ -450,7 +456,7 @@ where
 
     fn get_node_candidates(
         &self,
-        structure: &mut RSparseBitsetStructure,
+        structure: &mut Trail,
         last_candidate: Attribute,
         candidates: &[Attribute],
     ) -> Vec<Attribute> {
@@ -471,7 +477,7 @@ where
         node_candidates
     }
 
-    fn init_data(&mut self, structure: &mut RSparseBitsetStructure, index: Index) {
+    fn init_data(&mut self, structure: &mut Trail, index: Index) {
         if let Some(node) = self.cache.get_node_mut(index) {
             let classes_support = structure.labels_support();
             let (leaf_error, class) = Self::leaf_error(classes_support);
@@ -483,7 +489,7 @@ where
     fn compute_lower_bounds(
         &self,
         attribute: Attribute,
-        structure: &mut RSparseBitsetStructure,
+        structure: &mut Trail,
         itemset: &mut BTreeSet<Item>,
         similarities: &mut SimilarDatasets<T>,
         option: LowerBoundHeuristic,
@@ -517,7 +523,7 @@ where
         &self,
         child: Attribute,
         itemset: &mut BTreeSet<Item>,
-        structure: &mut RSparseBitsetStructure,
+        structure: &mut Trail,
         similarity_dataset: &mut SimilarDatasets<T>,
     ) -> [Branching; 2] {
         let mut lower_bounds = [0, 0];
@@ -581,7 +587,7 @@ where
 
     fn reset_after_branching(
         &self,
-        structure: &mut RSparseBitsetStructure,
+        structure: &mut Trail,
         itemset: &mut BTreeSet<Item>,
         is_new: bool,
         item: &Item,
@@ -619,7 +625,7 @@ where
     fn update_similarity_data(
         &self,
         similarity_dataset: &mut SimilarDatasets<T>,
-        structure: &mut RSparseBitsetStructure,
+        structure: &mut Trail,
         child_index: Index,
         condition: ReturnCondition,
     ) -> bool {
@@ -652,7 +658,7 @@ where
 
     fn run_specialized_algorithm(
         &mut self,
-        structure: &mut RSparseBitsetStructure,
+        structure: &mut Trail,
         index: Index,
         upper_bound: usize,
         itemset: &mut BTreeSet<Item>,
@@ -815,7 +821,7 @@ where
 
 #[cfg(test)]
 mod dl85_test {
-    use crate::algorithms::dl85::DL85;
+    use crate::algorithms::dl85::{Trail, DL85};
     use crate::algorithms::dl85_utils::structs_enums::{
         BranchingType, CacheInit, LowerBoundHeuristic, Specialization,
     };
@@ -823,20 +829,19 @@ mod dl85_test {
     use crate::dataset::data_trait::Dataset;
     use crate::heuristics::{Heuristic, InformationGain, NoHeuristic};
     use crate::structures::caching::trie::Data;
-    use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
     use crate::structures::structure_trait::Structure;
 
     #[test]
     fn run_dl85() {
         let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
-        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        let bitset_data = Trail::format_input_data(&dataset);
+        let mut structure = Trail::new(&bitset_data);
 
         let mut heuristic: Box<dyn Heuristic> = Box::new(NoHeuristic::default());
 
         let mut algo: DL85<'_, _, Data> = DL85::new(
             1,
-            6,
+            2,
             <usize>::MAX,
             10,
             Specialization::None,
@@ -848,5 +853,6 @@ mod dl85_test {
             heuristic.as_mut(),
         );
         algo.fit(&mut structure);
+        algo.tree.print();
     }
 }

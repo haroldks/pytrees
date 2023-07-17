@@ -1,9 +1,11 @@
 use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
+use crate::structures::rsparse_trail::RSparseTrail;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Support};
 use float_cmp::{ApproxEq, F64Margin};
 
-pub type DataStructure<'a> = RSparseBitsetStructure<'a>;
+// pub type DataStructure<'a> = RSparseBitsetStructure<'a>;
+pub type DataStructure<'a> = RSparseTrail<'a>;
 
 pub trait Heuristic {
     fn compute(&self, structure: &mut DataStructure, candidates: &mut Vec<Attribute>);

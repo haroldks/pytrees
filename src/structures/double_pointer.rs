@@ -2,6 +2,7 @@ use crate::dataset::data_trait::Dataset;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, DoublePointerData, Item, Position, Support};
 
+#[derive(Debug)]
 pub struct Part {
     // TODO: Add an Iterator for this part
     // pub(crate) elements : &'elem Vec<usize>,
@@ -11,6 +12,9 @@ pub struct Part {
 
 impl Part {
     fn size(&self) -> usize {
+        if self.end < self.begin {
+            return 0;
+        }
         self.end - self.begin + 1
     }
 }
@@ -19,10 +23,12 @@ struct DoublePointerStructure<'data> {
     input: &'data DoublePointerData,
     elements: Vec<usize>,
     support: Support,
-    num_labels: usize,
-    num_attributes: usize,
+    labels_support: Vec<Support>,
+    num_labels: usize,     // TODO: This is not needed
+    num_attributes: usize, // TODO: This is not needed
     position: Position,
-    state: Vec<Vec<Part>>,
+    // state: Vec<Vec<Part>>, // TODO: The wish here was to have part for each class and/or each value of the attribute
+    state: Vec<Part>,
     last_position: Option<(Attribute, Vec<Part>)>,
 }
 
@@ -40,22 +46,31 @@ impl<'data> Structure for DoublePointerStructure<'data> {
     }
 
     fn labels_support(&mut self) -> &[Support] {
-        todo!()
+        if !self.labels_support.is_empty() {
+            return &self.labels_support;
+        }
+
+        self.labels_support.clear();
+        for _ in 0..self.num_labels {
+            self.labels_support.push(0);
+        }
+        if let Some(last_state) = self.state.last() {
+            for i in last_state.begin..=last_state.end {
+                self.labels_support[self.input.target[i]] += 1;
+            }
+        }
+        &self.labels_support
     }
 
     fn support(&mut self) -> Support {
-        let mut support = 0;
-        if self.position.is_empty() {
-            return self.elements.len();
-        } else if !self.state.is_empty() {
-            if let Some(last_position) = self.position.last() {
-                let part_idx = last_position.1;
-                if let Some(part) = self.state.last() {
-                    return part[part_idx].size();
-                }
-            }
+        if self.support != Support::MAX {
+            return self.support;
         }
-        support
+        self.support = 0;
+        if let Some(last_state) = self.state.last() {
+            self.support = last_state.size();
+        }
+        self.support
     }
 
     fn get_support(&self) -> Support {
@@ -69,7 +84,12 @@ impl<'data> Structure for DoublePointerStructure<'data> {
     }
 
     fn backtrack(&mut self) {
-        todo!()
+        if !self.position.is_empty() {
+            self.position.pop();
+            self.state.pop();
+            self.support = Support::MAX;
+            self.labels_support.clear();
+        }
     }
 
     fn temp_push(&mut self, item: Item) -> Support {
@@ -77,8 +97,13 @@ impl<'data> Structure for DoublePointerStructure<'data> {
     }
 
     fn reset(&mut self) {
-        self.position = vec![];
-        self.state = vec![];
+        self.position = Vec::with_capacity(self.num_attributes);
+        self.state = vec![Part {
+            begin: 0,
+            end: self.input.inputs[0].len() - 1,
+        }];
+        self.support = self.input.inputs[0].len();
+        self.labels_support.clear();
     }
 
     fn get_position(&self) -> &Position {
@@ -113,36 +138,89 @@ impl<'data> DoublePointerStructure<'data> {
     }
 
     pub fn new(inputs: &'data DoublePointerData) -> Self {
-        let support = inputs.inputs.len();
+        let support = inputs.inputs[0].len();
 
-        let mut initial_state = vec![];
-        for _ in 0..2 {
-            let part = Part {
-                begin: 0,
-                end: support,
-            };
-            initial_state.push(part)
-        }
+        let mut state = vec![];
+
+        let part = Part {
+            begin: 0,
+            end: support - 1,
+        };
+
+        state.push(part);
 
         Self {
             input: inputs,
-            elements: (0..inputs.inputs.len()).collect::<Vec<usize>>(),
+            elements: (0..support).collect::<Vec<usize>>(),
             support: inputs.inputs.len(),
+            labels_support: vec![],
             num_labels: inputs.num_labels,
             num_attributes: inputs.num_attributes,
             position: vec![],
-            state: vec![],
+            state,
             last_position: None,
         }
     }
 
     fn pushing(&mut self, item: Item) {
-        if self.last_position.is_some() {
-            let last = self.last_position.take().unwrap();
-            if last.0 == item.0 {
-                self.state.push(last.1);
+        // TODO: I will ignore this case for now
+        // if self.last_position.is_some() {
+        //     let last = self.last_position.take().unwrap();
+        //     if last.0 == item.0 {
+        //         self.state.push(last.1); // TODO: Check if this is correct I don't really trust this because it is hard to work with the dynamic branching
+        //     }
+        // } else {
+        // }
+        self.support = Support::MAX;
+        self.labels_support.clear();
+
+        if let Some(last_state) = self.state.last() {
+            let inputs = &self.input.inputs;
+            let mut begin = last_state.begin;
+            let mut end = last_state.end;
+
+            loop {
+                while begin < end {
+                    if inputs[item.0][self.elements[begin]] == 0 {
+                        begin += 1;
+                    } else {
+                        break;
+                    }
+                }
+
+                if begin > end + 1 {
+                    break;
+                }
+
+                while end > begin {
+                    if inputs[item.0][self.elements[end]] == 1 {
+                        end -= 1;
+                    } else {
+                        break;
+                    }
+                }
+
+                if begin == end {
+                    break;
+                }
+
+                self.elements.swap(begin, end);
+                begin += 1;
             }
-        } else {
+
+            let mut part = Part {
+                begin: last_state.begin,
+                end: begin - 1,
+            };
+            if item.1 == 1 {
+                part = Part {
+                    begin: end,
+                    end: last_state.end,
+                };
+            }
+            self.support = part.size();
+            self.state.push(part);
+            self.labels_support();
         }
     }
 }
@@ -152,6 +230,7 @@ mod test_double_pointer {
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
     use crate::structures::double_pointer::DoublePointerStructure;
+    use crate::structures::structure_trait::Structure;
 
     #[test]
     fn load_double_pointer() {
@@ -163,5 +242,37 @@ mod test_double_pointer {
         assert_eq!(bitset_data.target.iter().eq(target.iter()), true);
         assert_eq!(bitset_data.num_labels, 2);
         assert_eq!(bitset_data.num_attributes, 3);
+    }
+
+    #[test]
+    fn test_simple_part() {
+        let dataset = BinaryDataset::load("test_data/small_.txt", false, 0.0);
+        let bitset_data = DoublePointerStructure::format_input_data(&dataset);
+        let mut structure = DoublePointerStructure::new(&bitset_data);
+        // println!("Input: {:?}", structure.input.inputs);
+        // println!("Elements: {:?}", structure.elements);
+        let item = (0, 0);
+        structure.push(item);
+        println!("Support: {:?}", structure.support());
+        println!("{:?}", structure.state);
+        println!("Labels Support: {:?}", structure.labels_support());
+        structure.push((1, 1));
+        println!("Support: {:?}", structure.support());
+        println!("Labels Support: {:?}", structure.labels_support());
+        structure.backtrack();
+        println!("Support: {:?}", structure.support());
+        println!("Labels Support: {:?}", structure.labels_support());
+
+        // structure.push(item);
+        println!("Elements: {:?}", structure.elements);
+
+        // assert_eq!(bitset_data.support, 4);
+        // assert_eq!(bitset_data.state.len(), 2);
+        // assert_eq!(bitset_data.state[0].begin, 0);
+        // assert_eq!(bitset_data.state[0].end, 1);
+        // assert_eq!(bitset_data.state[1].begin, 2);
+        // assert_eq!(bitset_data.state[1].end, 3);
+        // assert_eq!(bitset_data.elements, [1, 0, 2, 3]);
+        // assert_eq!(bitset_data.position, [item]);
     }
 }

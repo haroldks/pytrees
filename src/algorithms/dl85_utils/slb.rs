@@ -2,10 +2,14 @@ use crate::dataset::data_trait::Dataset;
 use crate::structures::bitsets_structure::BitsetStructure;
 use crate::structures::caching::trie::{Data, DataTrait};
 use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
+use crate::structures::rsparse_trail::RSparseTrail;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Bitset, BitsetStructData, Support};
 use std::cmp::max;
 use std::fmt::Debug;
+
+// pub type DataStructure<'a> = RSparseBitsetStructure<'a>;
+pub type DataStructure<'a> = RSparseTrail<'a>;
 
 #[derive(Debug, Default)]
 pub struct SimilarDatasets<T> {
@@ -24,7 +28,7 @@ where
         }
     }
 
-    pub fn update(&mut self, data: &T, structure: &mut RSparseBitsetStructure) -> bool {
+    pub fn update(&mut self, data: &T, structure: &mut DataStructure) -> bool {
         let error = match data.get_node_error() == <usize>::MAX {
             true => data.get_lower_bound(),
             false => data.get_node_error(),
@@ -53,7 +57,7 @@ where
         self.first.is_empty() && self.second.is_empty()
     }
 
-    fn set_empty(&mut self, data: &T, structure: &mut RSparseBitsetStructure) -> bool {
+    fn set_empty(&mut self, data: &T, structure: &mut DataStructure) -> bool {
         if self.first.is_empty() {
             self.first.update(structure, data);
             return true;
@@ -64,7 +68,7 @@ where
         false
     }
 
-    pub fn compute_similarity(&mut self, structure: &mut RSparseBitsetStructure) -> usize {
+    pub fn compute_similarity(&mut self, structure: &mut DataStructure) -> usize {
         let mut bound = 0;
         let saved = [&self.first, &self.second];
         for similarity in saved {
@@ -102,7 +106,7 @@ where
         }
     }
 
-    pub fn update(&mut self, structure: &mut RSparseBitsetStructure, data: &T) {
+    pub fn update(&mut self, structure: &mut DataStructure, data: &T) {
         self.state = structure.get_last_state_bitset();
         self.index = structure.get_current_index();
         self.limit = structure.get_current_limit();
@@ -114,7 +118,7 @@ where
         self.state.is_empty()
     }
 
-    pub fn difference(&self, structure: &mut RSparseBitsetStructure) -> (usize, usize) {
+    pub fn difference(&self, structure: &mut DataStructure) -> (usize, usize) {
         let (in_cout, out_count) = (
             structure.difference(self, true),
             structure.difference(self, false),
@@ -126,7 +130,7 @@ where
 #[cfg(test)]
 mod slb_tests {
     use crate::algorithms::dl85::DL85;
-    use crate::algorithms::dl85_utils::slb::{SimilarDatasets, Similarity};
+    use crate::algorithms::dl85_utils::slb::{DataStructure, SimilarDatasets, Similarity};
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
     use crate::structures::caching::trie::{Data, DataTrait};
@@ -136,8 +140,8 @@ mod slb_tests {
     #[test]
     fn test_slb() {
         let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
-        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        let bitset_data = DataStructure::format_input_data(&dataset);
+        let mut structure = DataStructure::new(&bitset_data);
 
         let mut slb: SimilarDatasets<Data> = SimilarDatasets::new();
         assert_eq!(slb.is_empty(), true);

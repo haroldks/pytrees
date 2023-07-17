@@ -1,30 +1,30 @@
 use crate::algorithms::dl85_utils::slb::Similarity;
 use crate::dataset::data_trait::Dataset;
-use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::bitsets_structure::BitsetStructure;
 use crate::structures::caching::trie::DataTrait;
-use crate::structures::structure_trait::{BitsetTrait, IsTrail, Structure};
+use crate::structures::structure_trait::{IsTrail, Structure};
 use crate::structures::structures_types::{
-    Bitset, BitsetStackState, BitsetStructData, Index, Item, LeafInfo, Position, StateCollection,
-    Support,
+    Bitset, BitsetStackState, BitsetStructData, Item, Position, Support,
 };
+use search_trail::{ReversibleU64, SaveAndRestore, StateManager, U64Manager};
 
-#[derive(Clone)]
-pub struct RSparseBitsetStructure<'data> {
+impl<'data> IsTrail for RSparseTrail<'data> {}
+
+pub struct RSparseTrail<'data> {
     inputs: &'data BitsetStructData,
     support: Support,
     labels_support: Vec<Support>,
     num_labels: usize,
     num_attributes: usize,
     position: Position,
-    state: BitsetStackState,
+    state_manager: StateManager,
+    state: Vec<ReversibleU64>,
     index: Vec<usize>,
     limit: Vec<isize>,
+    distance: ReversibleU64, // Steps to restore to attain the initial state
 }
 
-impl<'data> IsTrail for RSparseBitsetStructure<'data> {}
-
-impl<'data> Structure for RSparseBitsetStructure<'data> {
+impl<'data> Structure for RSparseTrail<'data> {
     fn num_attributes(&self) -> usize {
         self.num_attributes
     }
@@ -45,9 +45,8 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
                     let label_bitset = &self.inputs.targets[label];
                     for i in 0..(*limit + 1) as usize {
                         let cursor = self.index[i];
-                        if let Some(val) = state[cursor].last() {
-                            count += (label_bitset[cursor] & val).count_ones()
-                        }
+                        let val = self.state_manager.get_u64(state[cursor]);
+                        count += (label_bitset[cursor] & val).count_ones()
                     }
                 }
                 return count as Support;
@@ -61,8 +60,6 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
             return &self.labels_support;
         }
 
-        let state = &self.state;
-
         self.labels_support.clear();
         for _ in 0..self.num_labels {
             self.labels_support.push(0);
@@ -75,9 +72,8 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
                     let mut count = 0;
                     for i in 0..(*limit + 1) as usize {
                         let cursor = self.index[i];
-                        if let Some(val) = state[cursor].last() {
-                            count += (label_bitset[cursor] & val).count_ones()
-                        }
+                        let val = self.state_manager.get_u64(self.state[cursor]);
+                        count += (label_bitset[cursor] & val).count_ones()
                     }
                     self.labels_support[0] = count as Support;
                     self.labels_support[1] = self.support() - count as Support;
@@ -91,10 +87,9 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
                     let label_bitset = &self.inputs.targets[label];
                     for i in 0..(*limit + 1) as usize {
                         let cursor = self.index[i];
-                        if let Some(val) = state[cursor].last() {
-                            let word = label_bitset[cursor] & val;
-                            count += (label_bitset[cursor] & val).count_ones()
-                        }
+                        let val = self.state_manager.get_u64(self.state[cursor]);
+                        let word = label_bitset[cursor] & val;
+                        count += (label_bitset[cursor] & val).count_ones()
                     }
                 }
                 self.labels_support[label] = count as Support;
@@ -108,15 +103,13 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
         if !self.support == Support::MAX {
             return self.support;
         }
-        let state = &self.state;
         self.support = 0;
         if let Some(limit) = self.limit.last() {
             if *limit >= 0 {
                 for i in 0..(*limit + 1) as usize {
                     let cursor = self.index[i];
-                    if let Some(val) = state[cursor].last() {
-                        self.support += val.count_ones() as Support;
-                    }
+                    let val = self.state_manager.get_u64(self.state[cursor]);
+                    self.support += val.count_ones() as Support;
                 }
             }
         }
@@ -129,6 +122,10 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
 
     fn push(&mut self, item: Item) -> Support {
         self.position.push(item);
+        let current_distance = self.state_manager.get_u64(self.distance);
+        self.state_manager
+            .set_u64(self.distance, current_distance + 1);
+        self.state_manager.save_state();
         self.pushing(item);
 
         self.support()
@@ -141,9 +138,7 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
             if self.is_empty() {
                 self.limit.pop();
             } else if let Some(limit) = self.limit.last() {
-                for i in 0..(*limit + 1) as usize {
-                    self.state[self.index[i]].pop();
-                }
+                self.state_manager.restore_state();
                 self.limit.pop();
             }
             self.support = Support::MAX;
@@ -155,7 +150,6 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     fn temp_push(&mut self, item: Item) -> Support {
         // TODO: Change this to avoid recomputing the support & labels support
         let mut support = 0;
-
         if let Some(limit) = self.limit.last() {
             let mut limit = *limit;
             if limit >= 0 {
@@ -163,14 +157,13 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
                 let mut lim = limit as usize;
                 for i in (0..lim + 1).rev() {
                     let cursor = self.index[i];
-                    if let Some(val) = self.state[cursor].last() {
-                        let word = match item.1 {
-                            0 => val & !feature_vec[cursor],
-                            _ => val & feature_vec[cursor],
-                        };
-                        let word_count = word.count_ones() as Support;
-                        support += word_count;
-                    }
+                    let val = self.state_manager.get_u64(self.state[cursor]);
+                    let word = match item.1 {
+                        0 => val & !feature_vec[cursor],
+                        _ => val & feature_vec[cursor],
+                    };
+                    let word_count = word.count_ones() as Support;
+                    support += word_count;
                 }
             }
         }
@@ -181,89 +174,20 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
         self.position = Vec::with_capacity(self.num_attributes);
         self.limit = Vec::with_capacity(self.num_attributes);
         self.limit.push((self.inputs.chunks - 1) as isize);
-        let state = self
-            .state
-            .iter()
-            .map(|stack| vec![stack[0]])
-            .collect::<Vec<Bitset>>();
-        self.state = state;
+        let distance = self.state_manager.get_u64(self.distance);
+        for _ in 0..distance + 1 {
+            self.state_manager.restore_state();
+        }
         self.support = self.inputs.size as Support;
         self.labels_support.clear();
     }
+
     fn get_position(&self) -> &Position {
         &self.position
     }
 }
 
-impl<'data> BitsetTrait for RSparseBitsetStructure<'data> {
-    fn extract_leaf_bitvector(
-        &mut self,
-        tree: &Tree<NodeData>,
-        index: Index,
-        position: &mut Vec<Item>,
-        collector: &mut Vec<LeafInfo>,
-    ) {
-        let mut left_index = 0;
-        let mut right_index = 0;
-        let mut attribute = None;
-        if let Some(node) = tree.get_node(index) {
-            left_index = node.left;
-            right_index = node.right;
-            attribute = node.value.test;
-        }
-
-        if left_index == right_index {
-            let mut error = <usize>::MAX;
-            if let Some(node) = tree.get_node(index) {
-                error = node.value.error;
-            }
-
-            // Is leaf
-            collector.push(LeafInfo {
-                index,
-                position: position.clone(),
-                bitset: self.get_last_state_bitset(),
-                error,
-            }); // Bizarre ca
-                // position.pop();
-        }
-
-        if left_index > 0 {
-            if let Some(left_node) = tree.get_node(left_index) {
-                let item = (attribute.unwrap(), 0);
-                position.push(item);
-                self.push(item);
-                self.extract_leaf_bitvector(tree, left_index, position, collector);
-                position.pop();
-                self.backtrack()
-            }
-        }
-
-        if right_index > 0 {
-            if let Some(right_node) = tree.get_node(right_index) {
-                let item = (attribute.unwrap(), 1);
-                position.push(item);
-                self.push(item);
-                self.extract_leaf_bitvector(tree, right_index, position, collector);
-                position.pop();
-                self.backtrack()
-            }
-        }
-    }
-
-    fn set_state(&mut self, state: &Bitset, position: &Position) {
-        self.position = position.clone();
-        let mut new_state = vec![Vec::with_capacity(self.num_attributes); self.inputs.chunks];
-        for (i, s) in new_state.iter_mut().enumerate() {
-            s.push(state[i]);
-        }
-        self.state = new_state;
-        self.support = Support::MAX;
-        self.labels_support.clear();
-    }
-}
-
-impl<'data> RSparseBitsetStructure<'data> {
+impl<'data> RSparseTrail<'data> {
     pub fn format_input_data<T>(data: &T) -> BitsetStructData
     where
         T: Dataset,
@@ -271,47 +195,50 @@ impl<'data> RSparseBitsetStructure<'data> {
         BitsetStructure::format_input_data(data)
     }
 
-    pub fn new(inputs: &'data BitsetStructData) -> Self {
+    pub fn new(inputs: &'data BitsetStructData) -> RSparseTrail<'data> {
         let index = (0..inputs.chunks).collect::<Vec<usize>>();
-
         let num_attributes = inputs.inputs.len();
-        let mut state: Vec<Bitset> = vec![Vec::with_capacity(num_attributes); inputs.chunks];
-        for s in state.iter_mut().take(inputs.chunks) {
-            s.push(u64::MAX);
+        let mut state = Vec::with_capacity(inputs.chunks);
+        let mut manager = StateManager::default();
+        for i in 0..inputs.chunks {
+            let n = manager.manage_u64(u64::MAX);
+            state.push(n);
         }
 
         if inputs.size % 64 != 0 {
             let first_dead_bit = 64 - (inputs.chunks * 64 - inputs.size);
             let first_chunk = &mut state[0];
 
+            let mut val = manager.get_u64(*first_chunk);
             for i in (first_dead_bit..64).rev() {
                 let int_mask = 1u64 << i;
-                first_chunk[0] &= !int_mask;
+                val &= !int_mask;
             }
+            manager.set_u64(*first_chunk, val);
         }
+
+        let distance = manager.manage_u64(0);
+
+        manager.save_state(); // Save the initial state of the manager
+
         let mut limit = Vec::with_capacity(num_attributes);
         limit.push((inputs.chunks - 1) as isize);
 
-        let mut structure = RSparseBitsetStructure {
+        let mut structure = RSparseTrail {
             inputs,
             support: inputs.size as Support,
             labels_support: Vec::with_capacity(inputs.targets.len()),
             num_labels: inputs.targets.len(),
             num_attributes,
             position: Vec::with_capacity(num_attributes),
+            state_manager: manager,
             state,
             index,
             limit,
+            distance,
         };
         structure.support();
         structure
-    }
-
-    fn is_empty(&self) -> bool {
-        if let Some(limit) = self.limit.last() {
-            return *limit < 0;
-        }
-        false
     }
 
     fn pushing(&mut self, item: Item) {
@@ -328,47 +255,44 @@ impl<'data> RSparseBitsetStructure<'data> {
                 let mut lim = limit as usize;
                 for i in (0..lim + 1).rev() {
                     let cursor = self.index[i];
-                    if let Some(val) = self.state[cursor].last() {
-                        let word = match item.1 {
-                            0 => val & !feature_vec[cursor],
-                            _ => val & feature_vec[cursor],
-                        };
-                        if word == 0 {
-                            self.index[i] = self.index[lim];
-                            self.index[lim] = cursor;
-                            limit -= 1;
-                            lim = lim.saturating_sub(1);
-                            if limit < 0 {
-                                break;
-                            }
-                        } else {
-                            if self.position.len() == 2 {}
-                            let word_count = word.count_ones() as Support;
-                            self.support += word_count;
-                            if self.num_labels == 2 {
-                                let label_val = &self.inputs.targets[0][cursor];
-                                let zero_count = (label_val & word).count_ones() as Support;
-                                self.labels_support[0] += zero_count;
-                                self.labels_support[1] += (word_count - zero_count);
-                            } else {
-                                for j in 0..self.num_labels {
-                                    let label_val = &self.inputs.targets[j][cursor];
-                                    self.labels_support[j] +=
-                                        (label_val & word).count_ones() as Support;
-                                }
-                            }
-
-                            self.state[cursor].push(word);
+                    let val = self.state_manager.get_u64(self.state[cursor]);
+                    let word = match item.1 {
+                        0 => val & !feature_vec[cursor],
+                        _ => val & feature_vec[cursor],
+                    };
+                    if word == 0 {
+                        self.index[i] = self.index[lim];
+                        self.index[lim] = cursor;
+                        limit -= 1;
+                        lim = lim.saturating_sub(1);
+                        if limit < 0 {
+                            break;
                         }
+                    } else {
+                        if self.position.len() == 2 {}
+                        let word_count = word.count_ones() as Support;
+                        self.support += word_count;
+                        if self.num_labels == 2 {
+                            let label_val = &self.inputs.targets[0][cursor];
+                            let zero_count = (label_val & word).count_ones() as Support;
+                            self.labels_support[0] += zero_count;
+                            self.labels_support[1] += (word_count - zero_count);
+                        } else {
+                            for j in 0..self.num_labels {
+                                let label_val = &self.inputs.targets[j][cursor];
+                                self.labels_support[j] +=
+                                    (label_val & word).count_ones() as Support;
+                            }
+                        }
+
+                        self.state_manager.set_u64(self.state[cursor], word);
                     }
                 }
             }
 
-            self.limit.push(limit)
+            self.limit.push(limit);
         }
     }
-
-    // Start : Methods to evaluate the structure fo similarity lower bound
 
     pub fn get_last_state_bitset(&self) -> Bitset {
         let state = &self.state;
@@ -377,13 +301,19 @@ impl<'data> RSparseBitsetStructure<'data> {
             if *limit >= 0 {
                 for i in 0..(*limit + 1) {
                     let cursor = self.index[i as usize];
-                    if let Some(val) = state[cursor].last() {
-                        to_export[cursor] = *val;
-                    }
+                    let val = self.state_manager.get_u64(state[cursor]);
+                    to_export[cursor] = val;
                 }
             }
         }
         to_export
+    }
+
+    fn is_empty(&self) -> bool {
+        if let Some(limit) = self.limit.last() {
+            return *limit < 0;
+        }
+        false
     }
 
     pub fn get_current_index(&self) -> Vec<usize> {
@@ -411,7 +341,7 @@ impl<'data> RSparseBitsetStructure<'data> {
             for cursor in index.iter().take(limit as usize + 1) {
                 let val = match struc_limit == -1 {
                     true => 0,
-                    false => *self.state[*cursor].last().unwrap_or(&0),
+                    false => self.state_manager.get_u64(self.state[*cursor]),
                 };
                 let diff = match data_in {
                     true => val & !similarity.state[*cursor],
@@ -423,41 +353,47 @@ impl<'data> RSparseBitsetStructure<'data> {
         }
         0
     }
-    // End : Methods to evaluate the structure fo similarity lower bound
 }
 
 #[cfg(test)]
-mod test_rsparse_bitset {
+mod test_trail {
     use crate::dataset::binary_dataset::BinaryDataset;
     use crate::dataset::data_trait::Dataset;
-    use crate::structures::bitsets_structure::BitsetStructure;
-    use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
+    use crate::structures::rsparse_trail::RSparseTrail;
     use crate::structures::structure_trait::Structure;
+    use search_trail::{ReversibleU64, SaveAndRestore, StateManager, U64Manager};
+    use std::panic;
 
     #[test]
-    fn load_sparse_bitset() {
-        let dataset = BinaryDataset::load("test_data/rsparse_dataset.txt", false, 0.0);
-        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+    fn test() {
+        let mut manager = StateManager::default();
+        let n = manager.manage_u64(u64::MAX);
+        let distance = manager.manage_u64(0);
+        manager.save_state();
 
-        assert_eq!(bitset_data.chunks, 3);
-        if let Some(limit) = structure.limit.last() {
-            assert_eq!(*limit, 2);
+        manager.set_u64(n, 0);
+
+        let val = manager.get_u64(distance);
+        manager.set_u64(distance, val + 1);
+
+        manager.save_state();
+        manager.set_u64(n, 1);
+        let val = manager.get_u64(distance);
+        manager.set_u64(distance, val + 1);
+        manager.save_state();
+
+        for _ in 0..manager.get_u64(distance) + 1 {
+            manager.restore_state();
+            println!("{}", manager.get_u64(n));
         }
-        assert_eq!(
-            structure
-                .index
-                .iter()
-                .eq((0..3).collect::<Vec<usize>>().iter()),
-            true
-        );
+        println!("{}", manager.get_u64(distance));
     }
 
     #[test]
-    fn compute_stats() {
+    fn test_trail_stats() {
         let dataset = BinaryDataset::load("test_data/rsparse_dataset.txt", false, 0.0);
-        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        let bitset_data = RSparseTrail::format_input_data(&dataset);
+        let mut structure = RSparseTrail::new(&bitset_data);
 
         let expected_support = 192;
         assert_eq!(structure.support, expected_support);
@@ -468,12 +404,13 @@ mod test_rsparse_bitset {
     }
 
     #[test]
-    fn branching_in_dataset() {
+    fn test_trail_branching_in_data() {
         let dataset = BinaryDataset::load("test_data/rsparse_dataset.txt", false, 0.0);
-        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        let bitset_data = RSparseTrail::format_input_data(&dataset);
+        let mut structure = RSparseTrail::new(&bitset_data);
 
-        let support = structure.push((0, 1));
+        let item = (0, 1);
+        let support = structure.push(item);
 
         assert_eq!(support, 128);
         if let Some(limit) = structure.limit.last() {
@@ -507,10 +444,10 @@ mod test_rsparse_bitset {
     }
 
     #[test]
-    fn compute_state_on_small_dataset() {
+    fn compute_state_on_small_dataset_with_trail() {
         let dataset = BinaryDataset::load("test_data/small.txt", false, 0.0);
-        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        let bitset_data = RSparseTrail::format_input_data(&dataset);
+        let mut structure = RSparseTrail::new(&bitset_data);
         let num_attributes = structure.num_attributes();
 
         let support = structure.push((0, 1));
@@ -540,29 +477,10 @@ mod test_rsparse_bitset {
     }
 
     #[test]
-    fn check_reset() {
+    fn test_temp_push_on_trail() {
         let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
-        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&bitset_data);
-
-        for i in 0..structure.num_attributes() / 4 {
-            &mut structure.push((i, 0));
-        }
-
-        structure.reset();
-
-        assert_eq!(structure.support(), 812);
-        assert_eq!(
-            structure.labels_support().iter().eq([187, 625].iter()),
-            true
-        );
-    }
-
-    #[test]
-    fn test_temp_push() {
-        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
-        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        let bitset_data = RSparseTrail::format_input_data(&dataset);
+        let mut structure = RSparseTrail::new(&bitset_data);
         let num_attributes = structure.num_attributes();
 
         assert_eq!(
@@ -582,10 +500,29 @@ mod test_rsparse_bitset {
     }
 
     #[test]
-    fn test() {
+    fn check_trail_reset() {
         let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
-        let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        let bitset_data = RSparseTrail::format_input_data(&dataset);
+        let mut structure = RSparseTrail::new(&bitset_data);
+
+        for i in 0..structure.num_attributes() / 4 {
+            &mut structure.push((i, 0));
+        }
+
+        structure.reset();
+
+        assert_eq!(structure.support(), 812);
+        assert_eq!(
+            structure.labels_support().iter().eq([187, 625].iter()),
+            true
+        );
+    }
+
+    #[test]
+    fn testq() {
+        let dataset = BinaryDataset::load("test_data/anneal.txt", false, 0.0);
+        let bitset_data = RSparseTrail::format_input_data(&dataset);
+        let mut structure = RSparseTrail::new(&bitset_data);
 
         let support = structure.push((4, 0));
         println!("support: {}", support);
@@ -593,7 +530,22 @@ mod test_rsparse_bitset {
         let new_support = structure.push((5, 0));
         println!("new_support*: {}", new_support);
         println!("Labels support: {:?}", structure.labels_support());
+        for trail in structure.state.iter() {
+            println!(
+                "before trail: {:?}",
+                structure.state_manager.get_u64(*trail)
+            );
+        }
+        println!("");
+
         structure.backtrack();
+
+        for trail in structure.state.iter() {
+            println!("after trail: {:?}", structure.state_manager.get_u64(*trail));
+        }
+        println!("");
+
+        println!("Positions: {:?}", structure.get_position());
         println!("support: {}", structure.support());
         println!("Labels support: {:?}", structure.labels_support());
         let new_support = structure.push((5, 1));

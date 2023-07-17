@@ -33,3 +33,5 @@ pub trait BitsetTrait {
 
     fn set_state(&mut self, state: &Bitset, position: &Position);
 }
+
+pub trait IsTrail {}

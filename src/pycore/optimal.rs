@@ -13,9 +13,12 @@ use crate::heuristics::{GiniIndex, Heuristic, InformationGain, InformationGainRa
 use crate::structures::binary_tree::{NodeData, Tree};
 use crate::structures::caching::trie::Data;
 use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
+use crate::structures::rsparse_trail::RSparseTrail;
 use crate::structures::structures_types::{Depth, Support};
 use numpy::PyReadonlyArrayDyn;
 use std::time::Duration;
+
+pub type Trail<'a> = RSparseTrail<'a>;
 
 #[pyclass]
 pub(crate) struct Dl85InternalClassifier {
@@ -145,8 +148,8 @@ impl Dl85InternalClassifier {
         let input = input.as_array().map(|a| *a as usize);
         let target = target.as_array().map(|a| *a as usize);
         let dataset = BinaryDataset::load_from_numpy(&input, &target);
-        let formatted_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&formatted_data);
+        let formatted_data = Trail::format_input_data(&dataset);
+        let mut structure = Trail::new(&formatted_data);
 
         let mut heuristic: Box<dyn Heuristic> = match self.heuristic {
             SortHeuristic::InformationGain => Box::<InformationGain>::default(),

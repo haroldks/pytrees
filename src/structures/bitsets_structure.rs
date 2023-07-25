@@ -128,6 +128,14 @@ impl<'data> Structure for BitsetStructure<'data> {
     fn get_position(&self) -> &Position {
         &self.position
     }
+
+    fn num_threads(&self) -> usize {
+        todo!()
+    }
+
+    fn parallel_temp_push(&mut self, item: Item) -> Vec<usize> {
+        todo!()
+    }
 }
 
 impl<'data> BitsetTrait for BitsetStructure<'data> {

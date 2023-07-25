@@ -94,6 +94,14 @@ impl<'data> Structure for RawBinaryStructure<'data> {
     fn get_position(&self) -> &Position {
         &self.position
     }
+
+    fn num_threads(&self) -> usize {
+        todo!()
+    }
+
+    fn parallel_temp_push(&mut self, item: Item) -> Vec<usize> {
+        todo!()
+    }
 }
 
 impl<'data> RawBinaryStructure<'data> {

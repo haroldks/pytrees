@@ -74,7 +74,10 @@ impl Algorithm for MurTree {
             return Self::build_depth_one_tree(structure, min_sup);
         }
 
-        let matrix = Self::build_depth_two_matrix(structure, &candidates);
+        let matrix = match structure.num_threads() > 1 {
+            true => Self::parallel_build_matrix(structure, &candidates),
+            false => Self::build_depth_two_matrix(structure, &candidates),
+        };
 
         let mut tree = Self::empty_tree(2);
         let classes_support = structure.labels_support().to_vec();

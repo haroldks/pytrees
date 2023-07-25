@@ -11,7 +11,7 @@ use crate::structures::structures_types::{
 use itertools::{max, min};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon::prelude::IndexedParallelIterator;
-use std::cmp;
+use std::{cmp, thread};
 // use rayon::prelude::IntoParallelRefIterator;
 
 #[derive(Clone)]
@@ -25,6 +25,7 @@ pub struct RSparseBitsetStructure<'data> {
     state: BitsetStackState,
     index: Vec<usize>,
     limit: Vec<isize>,
+    num_threads: usize,
 }
 
 impl<'data> Structure for RSparseBitsetStructure<'data> {
@@ -196,6 +197,62 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     fn get_position(&self) -> &Position {
         &self.position
     }
+
+    fn num_threads(&self) -> usize {
+        self.num_threads
+    }
+
+    fn parallel_temp_push(&mut self, item: Item) -> Vec<usize> {
+        if self.num_threads <= 1 {
+            panic!("Number of threads must be greater than 1");
+        }
+        if let Some(limit) = self.limit.last() {
+            let mut limit = *limit;
+            if limit >= 0 {
+                // let cursors = &self.index[..(limit + 1) as usize];
+                let chunk_size = (limit + 1) as usize / self.num_threads;
+                let feature_vec = &self.inputs.inputs[item.0];
+
+                let mut value = vec![0usize; self.num_labels];
+                let _ = thread::scope(|s| {
+                    let mut handler = Vec::with_capacity(self.num_threads);
+                    for chunk in self.index[..(limit + 1) as usize].chunks(chunk_size) {
+                        let res = s.spawn(|| {
+                            // let mut out: usize = 0;
+                            let mut label_support = vec![0usize; self.num_labels];
+                            for &cursor in chunk.into_iter() {
+                                let mut val = 0;
+                                if let Some(last) = self.state[cursor].last() {
+                                    val = match item.1 {
+                                        0 => last & !feature_vec[cursor],
+                                        _ => last & feature_vec[cursor],
+                                    };
+                                }
+
+                                for j in 0..self.num_labels {
+                                    let label_val = &self.inputs.targets[j][cursor];
+                                    label_support[j] += (label_val & val).count_ones() as usize;
+                                }
+
+                                // out += val.count_ones() as Support;
+                            }
+                            return label_support;
+                        });
+                        handler.push(res);
+                    }
+                    for h in handler.into_iter() {
+                        let array = h.join().unwrap();
+                        for j in 0..self.num_labels {
+                            value[j] += array[j];
+                        }
+                        // value += h.join().unwrap();
+                    }
+                });
+                return value;
+            }
+        }
+        vec![0; self.num_labels]
+    }
 }
 
 impl<'data> BitsetTrait for RSparseBitsetStructure<'data> {
@@ -274,7 +331,7 @@ impl<'data> RSparseBitsetStructure<'data> {
         BitsetStructure::format_input_data(data)
     }
 
-    pub fn new(inputs: &'data BitsetStructData) -> Self {
+    pub fn new(inputs: &'data BitsetStructData, num_threads: usize) -> Self {
         let index = (0..inputs.chunks).collect::<Vec<usize>>();
 
         let num_attributes = inputs.inputs.len();
@@ -305,6 +362,7 @@ impl<'data> RSparseBitsetStructure<'data> {
             state,
             index,
             limit,
+            num_threads,
         };
         structure.support();
         structure
@@ -371,34 +429,86 @@ impl<'data> RSparseBitsetStructure<'data> {
         }
     }
 
-    pub(crate) fn parallel_temp_push(&mut self, item: Item) -> Support {
-        if let Some(limit) = self.limit.last() {
-            let mut limit = *limit;
-            if limit >= 0 {
-                let cursors = &self.index[..(limit + 1) as usize];
-                let min_len = cmp::max(1, cursors.len() / rayon::current_num_threads());
-                // println!("cursors {:?}", cursors);
-                let feature_vec = &self.inputs.inputs[item.0];
-                let value: usize = cursors
-                    .into_par_iter()
-                    .with_min_len(min_len)
-                    .map(|&cursor| {
-                        let mut val = 0;
-                        if let Some(last) = self.state[cursor].last() {
-                            val = match item.1 {
-                                0 => last & !feature_vec[cursor],
-                                _ => last & feature_vec[cursor],
-                            };
-                        }
-                        return val.count_ones() as Support;
-                    })
-                    .sum();
-                return value;
-            }
-        }
+    // pub(crate) fn parallel_temp_push(&mut self, item: Item, n_threads: usize) -> Support {
+    //     if let Some(limit) = self.limit.last() {
+    //         let mut limit = *limit;
+    //         if limit >= 0 {
+    //             let cursors = &self.index[..(limit + 1) as usize];
+    //             let min_len = cmp::max(1, cursors.len() / n_threads);
+    //             // println!("cursors {:?}", cursors);
+    //             // println!("min_len {:?}", min_len);
+    //             let feature_vec = &self.inputs.inputs[item.0];
+    //             let value: usize = cursors
+    //                 .into_par_iter()
+    //                 .with_min_len(min_len)
+    //                 .map(|&cursor| {
+    //                     let mut val = 0;
+    //                     if let Some(last) = self.state[cursor].last() {
+    //                         val = match item.1 {
+    //                             0 => last & !feature_vec[cursor],
+    //                             _ => last & feature_vec[cursor],
+    //                         };
+    //                     }
+    //                     return val.count_ones() as Support;
+    //                 })
+    //                 .sum();
+    //             return value;
+    //         }
+    //     }
+    //
+    //     0
+    // }
 
-        0
-    }
+    // pub(crate) fn parallel_temp_push_v2(&mut self, item: Item, num_threads : usize) -> Vec<usize> {
+    //     if let Some(limit) = self.limit.last() {
+    //         let mut limit = *limit;
+    //         if limit >= 0 {
+    //             // let cursors = &self.index[..(limit + 1) as usize];
+    //             let chunk_size = (limit + 1) as usize / num_threads;
+    //             let feature_vec = &self.inputs.inputs[item.0];
+    //
+    //             let mut value = vec![0usize; self.num_labels];
+    //             let _ = thread::scope(|s| {
+    //                 let mut handler = Vec::with_capacity(num_threads);
+    //                 for chunk in self.index[..(limit + 1) as usize].chunks(chunk_size) {
+    //
+    //                     let res = s.spawn( || {
+    //                         // let mut out: usize = 0;
+    //                         let mut label_support = vec![0usize; self.num_labels];
+    //                         for &cursor in chunk.into_iter() {
+    //                             let mut val = 0;
+    //                             if let Some(last) = self.state[cursor].last() {
+    //                                 val = match item.1 {
+    //                                     0 => last & !feature_vec[cursor],
+    //                                     _ => last & feature_vec[cursor],
+    //                                 };
+    //                             }
+    //
+    //                             for j in 0..self.num_labels {
+    //                                 let label_val = &self.inputs.targets[j][cursor];
+    //                                 label_support[j] += (label_val & val).count_ones() as usize;
+    //                             }
+    //
+    //
+    //                             // out += val.count_ones() as Support;
+    //                         }
+    //                         return label_support;
+    //                     });
+    //                     handler.push(res);
+    //                 }
+    //                 for h in handler.into_iter() {
+    //                     let array = h.join().unwrap();
+    //                     for j in 0..self.num_labels {
+    //                         value[j] += array[j];
+    //                     }
+    //                     // value += h.join().unwrap();
+    //                 }
+    //             });
+    //             return value;
+    //         }
+    //     }
+    //     vec![0; self.num_labels]
+    // }
 
     // Start : Methods to evaluate the structure fo similarity lower bound
 

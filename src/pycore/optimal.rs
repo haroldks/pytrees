@@ -146,7 +146,7 @@ impl Dl85InternalClassifier {
         let target = target.as_array().map(|a| *a as usize);
         let dataset = BinaryDataset::load_from_numpy(&input, &target);
         let formatted_data = RSparseBitsetStructure::format_input_data(&dataset);
-        let mut structure = RSparseBitsetStructure::new(&formatted_data);
+        let mut structure = RSparseBitsetStructure::new(&formatted_data, 0);
 
         let mut heuristic: Box<dyn Heuristic> = match self.heuristic {
             SortHeuristic::InformationGain => Box::<InformationGain>::default(),

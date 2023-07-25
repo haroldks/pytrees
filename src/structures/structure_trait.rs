@@ -20,6 +20,8 @@ pub trait Structure {
         }
         self.support()
     }
+    fn num_threads(&self) -> usize;
+    fn parallel_temp_push(&mut self, item: Item) -> Vec<usize>;
 }
 
 pub trait BitsetTrait {

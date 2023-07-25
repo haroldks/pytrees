@@ -61,6 +61,29 @@ pub trait Algorithm {
         matrix
     }
 
+    fn parallel_build_matrix<S>(
+        structure: &mut S,
+        candidates: &Vec<Attribute>,
+    ) -> Vec<Vec<Vec<usize>>>
+    where
+        S: Structure,
+    {
+        let size = candidates.len();
+        let mut matrix = vec![vec![vec![]; size]; size];
+        for i in 0..size {
+            structure.push((candidates[i], 1));
+            let val = structure.labels_support();
+            matrix[i][i] = val.to_vec();
+            for j in i + 1..size {
+                let labels_support = structure.parallel_temp_push((candidates[j], 1));
+                matrix[i][j] = labels_support.clone();
+                matrix[j][i] = labels_support;
+            }
+            structure.backtrack();
+        }
+        matrix
+    }
+
     fn sort_candidates<S, F>(
         structure: &mut S,
         candidates: &Vec<Attribute>,

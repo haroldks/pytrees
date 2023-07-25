@@ -74,7 +74,10 @@ impl Algorithm for InfoGain {
             return Self::build_depth_one_tree(structure, min_sup);
         }
 
-        let matrix = MurTree::build_depth_two_matrix(structure, &candidates);
+        let matrix = match structure.num_threads() > 1 {
+            true => Self::parallel_build_matrix(structure, &candidates),
+            false => Self::build_depth_two_matrix(structure, &candidates),
+        };
 
         let classes_support = structure.labels_support();
         let support = classes_support.iter().sum::<usize>();

@@ -114,7 +114,7 @@ impl LGDTInternalClassifier {
             }
             DataStructure::ReversibleSparseBitset => {
                 let formatted_data = RSparseBitsetStructure::format_input_data(&dataset);
-                let mut structure = RSparseBitsetStructure::new(&formatted_data);
+                let mut structure = RSparseBitsetStructure::new(&formatted_data, 0);
                 solve_instance(&mut structure, self.constraints.method, self.constraints)
             }
             DataStructure::HorizontalData => {
@@ -204,7 +204,7 @@ impl ParallelLGDTInternalClassifier {
             }
             DataStructure::ReversibleSparseBitset => {
                 let formatted_data = RSparseBitsetStructure::format_input_data(&dataset);
-                let mut structure = RSparseBitsetStructure::new(&formatted_data);
+                let mut structure = RSparseBitsetStructure::new(&formatted_data, 0);
                 solve_parallel_instance(&mut structure, self.constraints.method, self.constraints)
             }
             _ => {

@@ -207,6 +207,13 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
             panic!("Number of threads must be greater than 1");
         }
         if let Some(limit) = self.limit.last() {
+            if *limit < 1_000_000 {
+                self.push(item);
+                let labels_support = self.labels_support.to_vec();
+                self.backtrack();
+                return labels_support;
+            }
+
             let mut limit = *limit;
             if limit >= 0 {
                 // let cursors = &self.index[..(limit + 1) as usize];

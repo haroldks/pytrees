@@ -6,4 +6,6 @@ pub mod info_gain;
 pub mod lds_dl85;
 pub mod lgdt;
 pub mod murtree;
+pub mod para_murtree;
 pub mod parallel_lgdt;
+pub mod parallel_lgdt_murtree;

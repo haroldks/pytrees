@@ -1,6 +1,8 @@
 use crate::structures::binary_tree::{NodeData, Tree, TreeNode};
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Depth, Index, Item, Support};
+use std::sync::Arc;
+use std::thread;
 
 pub trait Algorithm {
     fn build_depth_one_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
@@ -81,6 +83,71 @@ pub trait Algorithm {
             }
             structure.backtrack();
         }
+        matrix
+    }
+
+    fn parallel_build_matrix_with_clone<S>(
+        structure: &mut S,
+        candidates: &Vec<Attribute>,
+    ) -> Vec<Vec<Vec<usize>>>
+    where
+        S: Structure + Clone + Send,
+    {
+        let n_threads = structure.num_threads();
+        let size = candidates.len();
+        let mut matrix = vec![vec![vec![]; size]; size];
+
+        let chunk_size = size / n_threads;
+
+        thread::scope(|s| {
+            let mut handles = vec![];
+            for i in 0..n_threads {
+                let mut thread_struct = structure.clone();
+                handles.push(s.spawn(move || {
+                    let start = i * chunk_size;
+                    let end = if i == n_threads - 1 {
+                        size
+                    } else {
+                        (i + 1) * chunk_size
+                    };
+                    let mut result = vec![];
+                    for i in start..end {
+                        thread_struct.push((candidates[i], 1));
+                        let val = thread_struct.labels_support();
+                        result.push(val.to_vec());
+                        for j in i + 1..size {
+                            let _ = thread_struct.push((candidates[j], 1));
+                            let labels_support = thread_struct.labels_support();
+                            result.push(labels_support.to_vec());
+                            thread_struct.backtrack();
+                        }
+                        thread_struct.backtrack();
+                    }
+                    result
+                }));
+            }
+
+            for (i, handle) in handles.into_iter().enumerate() {
+                let result = handle.join().unwrap();
+                let start = i * chunk_size;
+                let end = if i == n_threads - 1 {
+                    size
+                } else {
+                    (i + 1) * chunk_size
+                };
+                let mut index = 0;
+                for i in start..end {
+                    matrix[i][i] = result[index].clone();
+                    index += 1;
+                    for j in i + 1..size {
+                        matrix[i][j] = result[index].clone();
+                        matrix[j][i] = result[index].clone();
+                        index += 1;
+                    }
+                }
+            }
+        });
+
         matrix
     }
 

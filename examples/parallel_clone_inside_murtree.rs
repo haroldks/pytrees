@@ -1,3 +1,4 @@
+use clap::Parser;
 use pytrees::algorithms::algorithm_trait::{Algorithm, Basic};
 use pytrees::algorithms::lgdt::LGDT;
 use pytrees::algorithms::murtree::MurTree;
@@ -8,6 +9,7 @@ use pytrees::structures::structure_trait::Structure;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Error;
+use std::path::PathBuf;
 use std::time::Instant;
 
 use serde_json::{json, to_writer};
@@ -17,6 +19,15 @@ struct ResStructCloned {
     depth: Vec<usize>,
     runtimes: Vec<Vec<f64>>,
     errors: Vec<Vec<usize>>,
+}
+
+/// Simple program to greet a person
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Test File path
+    #[arg(short, long)]
+    file: PathBuf,
 }
 
 impl ResStructCloned {
@@ -29,7 +40,16 @@ impl ResStructCloned {
 }
 
 fn main() {
-    let dataset = BinaryDataset::load("test_data/letter.txt", false, 0.0);
+    let args = Args::parse();
+    if !args.file.exists() {
+        panic!("File does not exist");
+    }
+    let file = args.file.to_str().unwrap();
+    // Get file name without extension
+    let filename = args.file.file_stem().unwrap().to_str().unwrap().to_string();
+    let res_file = format!("{}_run_with_mutree_split_in_threads.json", filename);
+
+    let dataset = BinaryDataset::load(file, false, 0.0);
     let bitset = RSparseBitsetStructure::format_input_data(&dataset);
 
     let mut runtimes = vec![];
@@ -67,6 +87,5 @@ fn main() {
         runtimes: runtimes,
         errors: errors,
     };
-    res.to_json("run_with_mutree_split_in_threads.json".to_string())
-        .unwrap();
+    res.to_json(res_file).expect("Error writing file");
 }

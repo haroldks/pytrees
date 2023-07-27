@@ -7,15 +7,15 @@ use std::thread;
 pub trait Algorithm {
     fn build_depth_one_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
     where
-        S: Structure;
+        S: Structure + Clone + Send;
 
     fn build_depth_two_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
     where
-        S: Structure;
+        S: Structure + Clone + Send;
 
     fn fit<S>(structure: &mut S, min_sup: Support, max_depth: Depth) -> Tree<NodeData>
     where
-        S: Structure,
+        S: Structure + Clone + Send,
     {
         match max_depth < 2 {
             true => Self::build_depth_one_tree(structure, min_sup),

@@ -226,7 +226,7 @@ impl ParallelLGDTInternalClassifier {
     }
 }
 
-fn solve_instance<S: Structure>(
+fn solve_instance<S: Structure + Clone + Send>(
     structure: &mut S,
     method: FitMethod,
     constraints: LGDTConstraints,

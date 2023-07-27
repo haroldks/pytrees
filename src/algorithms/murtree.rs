@@ -62,7 +62,7 @@ impl Algorithm for MurTree {
 
     fn build_depth_two_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
     where
-        S: Structure,
+        S: Structure + Clone + Send,
     {
         // TODO : depth attribute
         let candidates = Self::generate_candidates_list(structure, min_sup);

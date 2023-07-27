@@ -64,7 +64,7 @@ impl Algorithm for InfoGain {
 
     fn build_depth_two_tree<S>(structure: &mut S, min_sup: Support) -> Tree<NodeData>
     where
-        S: Structure,
+        S: Structure + Clone + Send,
     {
         let candidates = InfoGain::generate_candidates_list(structure, min_sup);
         if candidates.is_empty() {

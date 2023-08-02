@@ -75,7 +75,7 @@ impl Algorithm for MurTree {
         }
 
         let matrix = match structure.num_threads() > 1 {
-            true => Self::parallel_build_matrix_with_clone(structure, &candidates),
+            true => Self::parallel_build_matrix_with_clone_balanced(structure, &candidates),
             false => Self::build_depth_two_matrix(structure, &candidates),
         };
 

@@ -151,6 +151,76 @@ pub trait Algorithm {
         matrix
     }
 
+    fn parallel_build_matrix_with_clone_balanced<S>(
+        structure: &mut S,
+        candidates: &Vec<Attribute>,
+    ) -> Vec<Vec<Vec<usize>>>
+    where
+        S: Structure + Clone + Send,
+    {
+        let n_threads = structure.num_threads();
+        let size = candidates.len();
+        let mut matrix = vec![vec![vec![]; size]; size];
+
+        // Generate tuples of indexes of the lower part of the matrix of size size
+        let mut indexes = vec![];
+        for i in 0..size {
+            for j in i..size {
+                indexes.push((i, j));
+            }
+        }
+        let indexes_size = indexes.len();
+        let chunk_size = indexes_size / n_threads;
+
+        thread::scope(|s| {
+            let mut handles = vec![];
+            for i in 0..n_threads {
+                let mut thread_struct = structure.clone();
+                let start = i * chunk_size;
+                let end = if i == n_threads - 1 {
+                    indexes_size
+                } else {
+                    (i + 1) * chunk_size
+                };
+                let mut result = vec![];
+                let part = &indexes[start..end];
+                handles.push(s.spawn(move || {
+                    let mut past_i = <usize>::MAX;
+                    for (i, j) in part.iter() {
+                        if past_i == <usize>::MAX {
+                            thread_struct.push((candidates[*i], 1));
+                            past_i = *i;
+                        } else if past_i != *i {
+                            thread_struct.backtrack();
+                            thread_struct.push((candidates[*i], 1));
+                            past_i = *i;
+                        }
+                        if *j == *i {
+                            let val = thread_struct.labels_support();
+                            result.push(((*i, *j), val.to_vec()));
+                            continue;
+                        }
+                        let _ = thread_struct.push((candidates[*j], 1));
+                        let labels_support = thread_struct.labels_support();
+                        result.push(((*i, *j), labels_support.to_vec()));
+                        thread_struct.backtrack();
+                    }
+                    result
+                }));
+            }
+
+            for handle in handles.into_iter() {
+                let result = handle.join().unwrap();
+                for ((i, j), labels_support) in result.into_iter() {
+                    matrix[i][j] = labels_support.clone();
+                    matrix[j][i] = labels_support;
+                }
+            }
+        });
+
+        matrix
+    }
+
     fn sort_candidates<S, F>(
         structure: &mut S,
         candidates: &Vec<Attribute>,

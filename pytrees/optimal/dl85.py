@@ -25,6 +25,7 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         branching=Branching.Dynamic,
         cache_init=CacheInit.Dynamic,
         cache_init_size=0,
+        custom_function=None,
     ):
         super().__init__()
         self.min_sup = min_sup
@@ -40,5 +41,6 @@ class DL85Classifier(Predictor, BaseEstimator, ClassifierMixin):
         self.cache_init_size = cache_init_size
         self.one_time_sort = one_time_sort
         self.heuristic = heuristic
+        self.custom_function = custom_function
 
         self.set_internal_class(Dl85InternalClassifier)

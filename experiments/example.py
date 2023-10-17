@@ -1,6 +1,6 @@
 import pandas as pd
 
-from pytrees.lgdt import LGDTClassifier
+from pytrees.optimal import DL85Classifier
 import numpy as np
 from sklearn.model_selection import train_test_split
 
@@ -44,7 +44,15 @@ import sys
 from pytrees.lgdt import LGDTClassifier
 from graphviz import Source
 
-clf = LGDTClassifier(min_sup=1, max_depth=2)
+
+def miss_class_error(vector, X=2):
+    print(vector)
+    return np.min(vector), np.argmax(vector)
+
+
+# print(miss_class_error([32, 34, 45]))
+
+clf = DL85Classifier(min_sup=1, max_depth=2, custom_function=miss_class_error)
 dataset = np.genfromtxt("../test_data/iris_multi.txt", delimiter=" ")
 X, y = dataset[:, 1:], dataset[:, 0]
 clf.fit(X, y.astype(float))

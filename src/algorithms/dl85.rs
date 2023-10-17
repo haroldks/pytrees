@@ -13,6 +13,7 @@ use crate::structures::caching::trie::{DataTrait, Trie, TrieNode};
 use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
 use crate::structures::structure_trait::Structure;
 use crate::structures::structures_types::{Attribute, Depth, Index, Item, Support};
+use pyo3::{PyObject, Python};
 use std::cmp::{max, min};
 use std::collections::BTreeSet;
 use std::fmt::Debug;
@@ -27,6 +28,7 @@ where
 {
     constraints: Constraints,
     heuristic: &'heur mut H,
+    custom_function: Option<PyObject>,
     cache: Trie<T>,
     stop_conditions: StopConditions<T>,
     pub statistics: Statistics,
@@ -51,6 +53,7 @@ where
         cache_init_size: usize,
         one_time_sort: bool,
         heuristic: &'heur mut H,
+        custom_function: Option<PyObject>, // This will be used for fast computation of the error using support classes
     ) -> Self {
         let constraints = Constraints {
             max_depth,
@@ -69,6 +72,7 @@ where
         Self {
             constraints,
             heuristic,
+            custom_function,
             cache: Trie::default(),
             stop_conditions: StopConditions::default(),
             statistics: Statistics {
@@ -92,6 +96,12 @@ where
         println!("Distribution: {distribution:?}");
         self.statistics.train_distribution = [distribution[0], distribution[1]];
         self.statistics.num_samples = structure.support();
+
+        if self.use_custom_error() {
+            let classes_support = structure.labels_support();
+            self.compute_custom_error(classes_support);
+        }
+
         // END STEP : Setup everything in the statistics structures
 
         // BEGIN STEP: Setup the cache
@@ -448,6 +458,24 @@ where
         // END STEP: If the node error is still MAX, we need to update the lower bound
     }
 
+    fn use_custom_error(&self) -> bool {
+        return self.custom_function.is_some();
+    }
+
+    fn compute_custom_error(&self, classes_support: &[usize]) {
+        if let Some(ref function) = self.custom_function {
+            Python::with_gil(|py| {
+                let cls_support = classes_support.to_vec();
+                let error: (usize, usize) = function
+                    .call1(py, (cls_support,))
+                    .unwrap()
+                    .extract(py)
+                    .unwrap();
+                println!("result = {:?}", error);
+            });
+        }
+    }
+
     fn get_node_candidates(
         &self,
         structure: &mut RSparseBitsetStructure,
@@ -472,9 +500,14 @@ where
     }
 
     fn init_data(&mut self, structure: &mut RSparseBitsetStructure, index: Index) {
+        if self.use_custom_error() {
+            let classes_support = structure.labels_support();
+            self.compute_custom_error(classes_support);
+        }
         if let Some(node) = self.cache.get_node_mut(index) {
             let classes_support = structure.labels_support();
             let (leaf_error, class) = Self::leaf_error(classes_support);
+
             node.value.set_leaf_error(leaf_error);
             node.value.set_class(class)
         }

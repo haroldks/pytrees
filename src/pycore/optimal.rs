@@ -20,6 +20,7 @@ use std::time::Duration;
 #[pyclass]
 pub(crate) struct Dl85InternalClassifier {
     heuristic: SortHeuristic,
+    custom_function: Option<PyObject>,
     tree: Tree<NodeData>,
     constraints: Constraints,
     statistics: Statistics,
@@ -42,6 +43,7 @@ impl Dl85InternalClassifier {
         heuristic: usize,
         cache_init: usize,
         cache_init_size: usize,
+        custom_function: Option<PyObject>,
     ) -> Self {
         let max_error = match error == -1 {
             true => <usize>::MAX,
@@ -122,9 +124,27 @@ impl Dl85InternalClassifier {
             tree_error: 0,
             duration: Duration::default(),
         };
+        // if custom_function.is_some() {
+        //   if let Some(ref function) = custom_function {
+        //       Python::with_gil(|py| {
+        //           let x: i32 = function.call1(py, (12,)).unwrap().extract(py).unwrap();
+        //           println!("result = {:?}", x);
+        //       });
+        //
+        //       Python::with_gil(|py| {
+        //           let x: i32 = function.call1(py, (50,)).unwrap().extract(py).unwrap();
+        //           println!("result = {:?}", x);
+        //       });
+        //   }
+        //
+        // }
+        // else {
+        //     println!("No custom function");
+        // }
 
         Self {
             heuristic,
+            custom_function,
             tree: Tree::new(),
             constraints,
             statistics,
@@ -168,6 +188,7 @@ impl Dl85InternalClassifier {
                 self.constraints.cache_init_size,
                 self.constraints.one_time_sort,
                 heuristic.as_mut(),
+                self.custom_function.clone(),
             );
 
             algorithm.fit(&mut structure);

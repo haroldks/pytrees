@@ -2,7 +2,6 @@
 
 use crate::algorithms::algorithm_trait::Algorithm;
 use crate::algorithms::dl85::DL85;
-use crate::algorithms::dl85_utils::structs_enums::Specialization::Murtree;
 use crate::algorithms::dl85_utils::structs_enums::{
     BranchingType, CacheInit, DiscrepancyStrategy, LowerBoundHeuristic, Specialization,
 };
@@ -21,9 +20,10 @@ use itertools::Itertools;
 use ndarray::s;
 use rand::Rng;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Instant;
+use std::{process, thread};
 // use rayon::iter::IntoParallelIterator;
+use clap::Parser;
 use rayon::prelude::*;
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -31,6 +31,7 @@ use serde_json;
 use serde_json::to_writer;
 use std::fs::File;
 use std::io::Error;
+use std::path::PathBuf;
 
 mod algorithms;
 mod dataset;
@@ -42,6 +43,46 @@ mod structures;
 struct ExpeRes {
     size: Vec<usize>,
     res: Vec<Vec<f64>>,
+}
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Test File path
+    #[arg(short, long)]
+    file: PathBuf,
+
+    /// Maximum depth
+    #[arg(short, long)]
+    depth: usize,
+
+    /// Minimum support
+    #[arg(short, long, default_value_t = 1)]
+    support: usize,
+
+    /// Use Murtree Spacialization Algorithm
+    #[arg(short, long)]
+    use_specialization: bool,
+
+    /// Lower bound heuristic
+    /// 0: None
+    /// 1: Similarity
+    #[arg(short, long, default_value_t = 0)]
+    lower_bound_heuristic: usize,
+
+    /// Branching type
+    /// 0: None
+    /// 1: Dynamic
+    #[arg(short, long, default_value_t = 0)]
+    branching_type: usize,
+
+    /// Sorting heuristic
+    /// 0: None
+    /// 1: Gini
+    /// 2: Information Gain
+    /// 3: Information Gain Ratio
+    #[arg(long, default_value_t = 0)]
+    sorting_heuristic: usize,
 }
 
 impl ExpeRes {
@@ -140,210 +181,71 @@ fn compare_free_contention(a: &[usize], b: &[usize], n_threads: usize) -> usize 
 }
 
 fn main() {
-    let dataset = BinaryDataset::load("test_data/ionosphere.txt", false, 0.0);
-    // let dataset = BinaryDataset::load(
-    //     "experiments/data/parallel_datasets/250_1000000.csv",
-    //     false,
-    //     0.0,
-    // );
-    println!("Dataset loaded");
+    let args = Args::parse();
+    if !args.file.exists() {
+        panic!("File does not exist");
+    }
+
+    let file = args.file.to_str().unwrap();
+    let depth = args.depth;
+    let min_sup = args.support;
+
+    let use_specialization = args.use_specialization;
+    let lower_bound_heuristic = args.lower_bound_heuristic;
+    let branching_type = args.branching_type;
+    let sorting_heuristic = args.sorting_heuristic;
+
+    let specialization = match use_specialization {
+        true => Specialization::Murtree,
+        false => Specialization::None,
+    };
+
+    let lower_bound = match lower_bound_heuristic {
+        0 => LowerBoundHeuristic::None,
+        1 => LowerBoundHeuristic::Similarity,
+        _ => {
+            println!("Invalid lower bound heuristic");
+            process::exit(1);
+        }
+    };
+
+    let branching = match branching_type {
+        0 => BranchingType::None,
+        1 => BranchingType::Dynamic,
+        _ => {
+            println!("Invalid branching type");
+            process::exit(1);
+        }
+    };
+
+    let mut heuristic: Box<dyn Heuristic> = match sorting_heuristic {
+        0 => Box::new(NoHeuristic::default()),
+        1 => Box::new(GiniIndex::default()),
+        2 => Box::new(InformationGain::default()),
+        3 => Box::new(InformationGainRatio::default()),
+        _ => {
+            println!("Invalid heuristic type");
+            process::exit(1);
+        }
+    };
+
+    let dataset = BinaryDataset::load(file, false, 0.0);
     let bitset = RSparseBitsetStructure::format_input_data(&dataset);
-    let mut structure = RSparseBitsetStructure::new(&bitset, 0);
-    structure.push((20, 1));
-    println!("Value : {:?}", structure.labels_support());
-    structure.backtrack();
-    println!("Value : {:?}", structure.parallel_temp_push((20, 1)));
-    println!("Value : {:?}", structure.parallel_temp_push((20, 1)));
+    let mut structure = RSparseBitsetStructure::new(&bitset, 1);
 
-    // let candidates = (0usize..structure.num_attributes()).collect_vec();
-    // let start = Instant::now();
-    // let  c = MurTree::build_depth_two_matrix(&mut structure, &candidates, );
-    // println!("Time: {:?}", start.elapsed().as_millis());
-    // println!("{:?}", c.len());
-    // let dataset = BinaryDataset::load(
-    //     "experiments/data/parallel_datasets/250_1000000.csv",
-    //     false,
-    //     0.0,
-    // );
-    //
-    // let n_threads = 6;
-    // //let sizes = [1000usize, 2000, 5000, 10_000, 100_000, 200_000, 500_000, 700_000, 800_000, 1_000_000, 2_000_000, 3_000_000, 7_000_000, 10_000_0000];
-    // //let size = 7_000;
-    // let sizes = [100usize, 1000];
-    // let repeat = 100;
-    //
-    // let mut results = vec![];
-    //
-    // for size in sizes.iter(){
-    //     let a = gen_random_vec(*size);
-    //     let b = gen_random_vec(*size);
-    //     let mut thread_res = vec![];
-    //     for thread in 1..n_threads{
-    //         let mut total = 0f64;
-    //         for count in 0..repeat {
-    //             let start = Instant::now();
-    //             let c = compare(&a, &b, thread);
-    //             let end = Instant::now();
-    //             let elapsed = end.duration_since(start).as_secs_f64() * 1000.0;
-    //             total += elapsed;
-    //         }
-    //         thread_res.push(total/(repeat as f64));
-    //
-    //         println!("Mean duration for {} threads is {:?} ms", thread, total/(repeat as f64));
-    //     }
-    //     results.push(thread_res);
-    // }
-    //
-    // let res = ExpeRes{size: sizes.to_vec(), res: results};
-    // res.to_json("experiments/data/output_pop_count_parallel.json".to_string());
-    //
-
-    // let start = Instant::now();
-    // let n = 20_000;
-    // let tab = (0..n).collect::<Vec<usize>>();
-    // let duration = start.elapsed().as_millis();
-
-    // Using rayon to compute the sum in parallel with min length of 1000
-    // let start = Instant::now();
-    // // let sum = tab.par_iter().sum::<usize>();
-    // let sum = tab.par_chunks(n / n_threads).map(|chunk| chunk.iter().sum::<usize>()).sum::<usize>();
-    // let duration = start.elapsed().as_millis();
-    // println!("Sum: {:?}", sum);
-    // println!("Duration for para : {:?}", duration);
-
-    // let mut handles = vec![];
-    // let mut value = 0;
-    //
-    // let n_repeat = 10;
-    // for n_thread in 2..9 {
-    //     let mut total_duration = 0f64;
-    //     let chunk_size = tab.len() / n_thread;
-    //
-    //     let start = Instant::now();
-    //     for _ in 0..n_repeat {
-    //
-    //         let _ = thread::scope(|s| {
-    //             let mut handles = vec![];
-    //             for i in 0..n_thread {
-    //
-    //                 let chunk_start = i * chunk_size;
-    //                 let chunk_end = if i == n_thread - 1 {
-    //                     tab.len()
-    //                 } else {
-    //                     (i + 1) * chunk_size
-    //                 };
-    //
-    //                 let chunk = &tab[chunk_start..chunk_end];
-    //                 handles.push(s.spawn( move || {
-    //                     chunk.iter().sum::<usize>()
-    //                 }));
-    //             }
-    //             value = handles.into_iter().map(|handle| handle.join().unwrap()).sum::<usize>();
-    //
-    //         });
-    //     }
-    //     total_duration += start.elapsed().as_millis() as f64 ;
-    //     println!("Duration for para with {} threads: {:?} ms", n_thread, total_duration / n_repeat as f64);
-    //     println!("Sum: {:?}", value);
-    //     value = 0;
-    // }
-
-    // let start = Instant::now();
-    // for i in 0..num_threads {
-    //     let chunk_start = i * chunk_size;
-    //     let chunk_end = if i == num_threads - 1 {
-    //         tab.len()
-    //     } else {
-    //         (i + 1) * chunk_size
-    //     };
-    //
-    //     let chunk = &tab[chunk_start..chunk_end];
-    //
-    //     let handle = thread::spawn(|| chunk.iter().sum::<usize>());
-    //     handles.push(handle);
-    // }
-
-    // Collect the results from each thread and compute the final sum
-    // let sum: usize = handles.into_iter().map(|handle| handle.join().unwrap()).sum();
-    // let duration = start.elapsed().as_millis();
-    // println!("Sum: {:?}", arc_val.lock().unwrap());
-    // println!("Duration for para : {:?}", duration);
-
-    // Sequential sum
-
-    // Parallelize the sum using a number of threads
-
-    // println!("Tab size: {:?}", tab.len());
-    // let start = Instant::now();
-    // let sum = tab.iter().sum::<usize>();
-    // let duration = start.elapsed().as_millis();
-    // println!("Sum: {:?}", sum);
-    // println!("Duration sequential: {:?}", duration);
-    // //
-    // let bitset_data = RSparseBitsetStructure::format_input_data(&dataset);
-    // let mut structure = RSparseBitsetStructure::new(&bitset_data);
-    // let num_attributes = structure.num_attributes();
-    // println!("Num attributes: {:?}", num_attributes);
-    // println!("Num labels: {:?}", structure.num_labels());
-    // println!("Support: {:?}", structure.support());
-    // let n = 100;
-    // let mut total_duration = 0f64;
-    //
-    // for n_thread in 2..15 {
-    //     total_duration = 0f64;
-    //     let mut total_count = 0;
-    //     for _ in 0..n {
-    //         let start = Instant::now();
-    //         total_count += structure.parallel_temp_push((20, 1), n_thread);
-    //         total_duration += start.elapsed().as_micros() as f64;
-    //     }
-    //     println!("Parallel temp push time with {} threads: {:?} us with count = {}", n_thread, total_duration / n as f64, total_count);
-    //
-    // }
-    // println!();
-    // println!();
-    // for n_thread in 2..15 {
-    //     total_duration = 0f64;
-    //     let mut total_count = 0;
-    //     for _ in 0..n {
-    //         let start = Instant::now();
-    //         total_count += structure.parallel_temp_push_v2((20, 1), n_thread);
-    //         total_duration += start.elapsed().as_micros() as f64;
-    //     }
-    //     println!("Parallel temp push time v2 with {} threads: {:?} us and tt = {}", n_thread, total_duration / n as f64, total_count);
-    //
-    // }
-    //
-    // println!();
-    // println!();
-    //
-    // total_duration = 0f64;
-    // let mut total_count = 0;
-    // for _ in 0..n {
-    //     let start = Instant::now();
-    //     total_count += structure.temp_push((20, 1));
-    //     total_duration += start.elapsed().as_micros() as f64;
-    // }
-    // println!("Sequential temp push time: {:?} us with total count = {}", total_duration / n as f64, total_count);
-
-    // let mut heuristic: Box<dyn Heuristic> = Box::new(NoHeuristic::default());
-
-    // let mut algo: DL85<'_, _, Data> = DL85::new(
-    //     1,
-    //     2,
-    //     <usize>::MAX,
-    //     600,
-    //     Specialization::None,
-    //     LowerBoundHeuristic::None,
-    //     BranchingType::None,
-    //     CacheInit::WithMemoryDynamic,
-    //     0,
-    //     true,
-    //     heuristic.as_mut(),
-    // );
-
-    // let algo = LGDT::fit(&mut structure, 5, 2, InfoGain::fit);
-    // algo.print();
-    // algo.fit(&mut structure);
-    // algo.tree.print();
+    let mut algo: DL85<'_, _, Data> = DL85::new(
+        min_sup,
+        depth,
+        <usize>::MAX,
+        <usize>::MAX,
+        specialization,
+        lower_bound,
+        branching,
+        CacheInit::Normal,
+        0,
+        false,
+        heuristic.as_mut(),
+    );
+    algo.fit(&mut structure);
+    algo.tree.print();
 }

@@ -38,6 +38,7 @@ nohash-hasher = "0.2.0"
 coz = "0.1"
 rayon = "1.7.0"
 clap = { version = "4.4.6", features = ["derive"] }
+search_trail = "0.1.2"
 
 [[bench]]
 name = "algo_benches"

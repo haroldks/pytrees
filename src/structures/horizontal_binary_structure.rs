@@ -95,6 +95,16 @@ impl<'data> Structure for HorizontalBinaryStructure<'data> {
     fn get_position(&self) -> &Position {
         &self.position
     }
+
+    fn get_tids(&self) -> Vec<usize> {
+        self.state
+            .last()
+            .unwrap()
+            .iter()
+            .flatten()
+            .cloned()
+            .collect()
+    }
 }
 
 impl<'data> HorizontalBinaryStructure<'data> {

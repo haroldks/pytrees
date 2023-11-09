@@ -84,6 +84,10 @@ impl<'data> Structure for DoublePointerStructure<'data> {
     fn get_position(&self) -> &Position {
         &self.position
     }
+
+    fn get_tids(&self) -> Vec<usize> {
+        todo!()
+    }
 }
 
 impl<'data> DoublePointerStructure<'data> {

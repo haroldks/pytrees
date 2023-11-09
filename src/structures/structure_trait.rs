@@ -20,6 +20,8 @@ pub trait Structure {
         }
         self.support()
     }
+
+    fn get_tids(&self) -> Vec<usize>;
 }
 
 pub trait BitsetTrait {

@@ -191,6 +191,33 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
     fn get_position(&self) -> &Position {
         &self.position
     }
+
+    fn get_tids(&self) -> Vec<usize> {
+        if self.position.is_empty() {
+            return (0..self.inputs.size).collect::<Vec<usize>>();
+        }
+        let mut tids = Vec::with_capacity(self.inputs.size);
+        let nb_chunks = self.inputs.chunks;
+        let nb_trans = self.inputs.size;
+        if let Some(limit) = self.limit.last() {
+            if *limit >= 0 {
+                let limit = *limit as usize;
+                for i in 0..limit + 1 {
+                    let cursor = self.index[i];
+                    println!("Cursor: {}", cursor);
+                    let val = self.state[cursor].last().unwrap_or(&0);
+                    let mut word = *val;
+                    while word != 0 {
+                        let set_bits = word.trailing_zeros() as usize;
+                        let tid = nb_trans - ((nb_chunks - 1 - cursor) * 64 + set_bits) - 1;
+                        tids.push(tid);
+                        word &= !(1 << set_bits);
+                    }
+                }
+            }
+        }
+        tids
+    }
 }
 
 impl<'data> BitsetTrait for RSparseBitsetStructure<'data> {
@@ -577,5 +604,19 @@ mod test_rsparse_bitset {
             structure.labels_support().iter().eq([187, 625].iter()),
             true
         );
+    }
+
+    #[test]
+    fn see_tids() {
+        let dataset = BinaryDataset::load("test_data/rsparse_dataset.txt", false, 0.0);
+        let bitset_data = BitsetStructure::format_input_data(&dataset);
+        let mut structure = RSparseBitsetStructure::new(&bitset_data);
+        // Print in binary
+
+        let sup = structure.push((0, 0));
+        println!("Support: {}", sup);
+        println!("Limit: {:?}", structure.limit);
+
+        println!("Tids: {:?}", structure.get_tids());
     }
 }

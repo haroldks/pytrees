@@ -128,6 +128,29 @@ impl<'data> Structure for BitsetStructure<'data> {
     fn get_position(&self) -> &Position {
         &self.position
     }
+
+    fn get_tids(&self) -> Vec<usize> {
+        if self.position.is_empty() {
+            return (0..self.inputs.size).collect();
+        }
+
+        let mut tids = vec![];
+        let nb_chunks = self.inputs.chunks;
+        let nb_trans = self.inputs.size;
+        if let Some(state) = self.get_last_state() {
+            let mut current_tid = 0;
+            for (idx, chunk) in state.iter().enumerate().rev() {
+                let mut word = *chunk;
+                while word != 0 {
+                    let set_bit = word.trailing_zeros() as usize;
+                    let tid = nb_trans - ((nb_chunks - 1 - idx) * 64 + set_bit) - 1;
+                    tids.push(tid);
+                    word &= !(1u64 << set_bit);
+                }
+            }
+        }
+        tids
+    }
 }
 
 impl<'data> BitsetTrait for BitsetStructure<'data> {
@@ -1823,5 +1846,24 @@ mod test_bitsets {
             structure.labels_support().iter().eq([187, 625].iter()),
             true
         );
+    }
+
+    #[test]
+    fn see_tids() {
+        let dataset = BinaryDataset::load("test_data/rsparse_dataset.txt", false, 0.0);
+        let bitset_data = BitsetStructure::format_input_data(&dataset);
+        let mut structure = BitsetStructure::new(&bitset_data);
+        // Print in binary
+
+        let sup = structure.push((0, 0));
+        println!("Support: {}", sup);
+        let state = structure.get_last_state();
+        if let Some(state) = state {
+            for chunk in state.iter() {
+                println!("{:064b}", chunk);
+            }
+        }
+
+        println!("Tids: {:?}", structure.get_tids());
     }
 }

@@ -94,6 +94,10 @@ impl<'data> Structure for RawBinaryStructure<'data> {
     fn get_position(&self) -> &Position {
         &self.position
     }
+
+    fn get_tids(&self) -> Vec<usize> {
+        self.state.last().unwrap().clone()
+    }
 }
 
 impl<'data> RawBinaryStructure<'data> {

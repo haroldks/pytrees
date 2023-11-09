@@ -25,6 +25,7 @@ struct DoublePointerStructure<'data> {
     position: Position,
     state: [ReversibleUsize; 3],
     is_left: ReversibleBool,
+    distance: ReversibleUsize, // Steps to restore to attain the initial state
     manager: StateManager,
 }
 
@@ -94,6 +95,8 @@ impl<'data> Structure for DoublePointerStructure<'data> {
 
     fn push(&mut self, item: Item) -> Support {
         self.position.push(item);
+        let current_distance = self.manager.get_usize(self.distance);
+        self.manager.set_usize(self.distance, current_distance + 1);
         self.manager.save_state();
         let statue_value = self.pushing(item);
         self.push_state(statue_value);
@@ -115,7 +118,13 @@ impl<'data> Structure for DoublePointerStructure<'data> {
     }
 
     fn reset(&mut self) {
-        todo!()
+        self.position.clear();
+        let distance = self.manager.get_usize(self.distance);
+        for _ in 0..distance + 1 {
+            self.manager.restore_state();
+        }
+        self.support = <Support>::MAX;
+        self.labels_support.clear();
     }
 
     fn get_position(&self) -> &Position {
@@ -123,7 +132,11 @@ impl<'data> Structure for DoublePointerStructure<'data> {
     }
 
     fn get_tids(&self) -> Vec<usize> {
-        todo!()
+        if self.position.is_empty() {
+            return self.tids.clone();
+        }
+        let (start, end) = self.get_borders();
+        self.tids[start..end].to_vec()
     }
 }
 
@@ -163,6 +176,7 @@ impl<'data> DoublePointerStructure<'data> {
             manager.manage_usize(tids.len()),
         ];
         let is_left = manager.manage_bool(true);
+        let distance = manager.manage_usize(0);
 
         manager.save_state(); // Save the initial state
 
@@ -176,6 +190,7 @@ impl<'data> DoublePointerStructure<'data> {
             position: vec![],
             state,
             is_left,
+            distance,
             manager,
         }
     }
@@ -442,5 +457,18 @@ mod test_double_pointer {
             structure.backtrack();
             assert_eq!(support, expected_supports[i]);
         }
+    }
+
+    #[test]
+    fn see_tids() {
+        let dataset = BinaryDataset::load("test_data/rsparse_dataset.txt", false, 0.0);
+        let bitset_data = DoublePointerStructure::format_input_data(&dataset);
+        let mut structure = DoublePointerStructure::new(&bitset_data);
+        // Print in binary
+
+        let sup = structure.push((0, 0));
+        println!("Support: {}", sup);
+
+        println!("Tids: {:?}", structure.get_tids());
     }
 }

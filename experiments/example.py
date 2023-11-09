@@ -11,6 +11,7 @@ from pytrees import (
     Branching,
     CacheInit,
     DiscrepancyStrategy,
+    CustomFunctionDataType,
 )
 
 import sys
@@ -46,6 +47,7 @@ from graphviz import Source
 
 
 def miss_class_error(vector, X=2):
+    # print(vector)
     return np.sum(vector) - np.max(vector), np.argmax(vector)
 
 
@@ -53,9 +55,10 @@ def miss_class_error(vector, X=2):
 
 clf = DL85Classifier(
     min_sup=1,
-    max_depth=4,
+    max_depth=2,
     custom_function=miss_class_error,
     specialization=Specialization.None_,
+    custom_function_type=CustomFunctionDataType.Tids,
 )
 dataset = np.genfromtxt("../test_data/anneal.txt", delimiter=" ")
 X, y = dataset[:, 1:], dataset[:, 0]

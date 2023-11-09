@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![warn(clippy::too_many_arguments)]
 
 use crate::algorithms::algorithm_trait::Algorithm;
 use crate::algorithms::dl85::DL85;
@@ -28,7 +29,6 @@ use clap::Parser;
 use rayon::prelude::*;
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use serde_json::to_writer;
 use std::fs::File;
 use std::io::Error;
@@ -135,10 +135,10 @@ fn main() {
     };
 
     let mut heuristic: Box<dyn Heuristic> = match sorting_heuristic {
-        0 => Box::new(NoHeuristic::default()),
-        1 => Box::new(GiniIndex::default()),
-        2 => Box::new(InformationGain::default()),
-        3 => Box::new(InformationGainRatio::default()),
+        0 => Box::<NoHeuristic>::default(),
+        1 => Box::<GiniIndex>::default(),
+        2 => Box::<InformationGain>::default(),
+        3 => Box::<InformationGainRatio>::default(),
         _ => {
             println!("Invalid heuristic type");
             process::exit(1);
@@ -161,6 +161,7 @@ fn main() {
         0,
         false,
         heuristic.as_mut(),
+        None,
         None,
     );
     algo.fit(&mut structure);

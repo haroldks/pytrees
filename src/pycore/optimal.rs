@@ -3,8 +3,8 @@ use pyo3::{pyclass, pymethods, pymodule, IntoPy, PyObject, PyResult, Python};
 
 use crate::algorithms::dl85::DL85;
 use crate::algorithms::dl85_utils::structs_enums::{
-    BranchingType, CacheInit, Constraints, DiscrepancyStrategy, LowerBoundHeuristic, SortHeuristic,
-    Specialization, Statistics,
+    BranchingType, CacheInit, Constraints, DiscrepancyStrategy, LowerBoundHeuristic,
+    PythonFunctionData, SortHeuristic, Specialization, Statistics,
 };
 use crate::algorithms::lds_dl85::LDSDL85;
 use crate::dataset::binary_dataset::BinaryDataset;
@@ -44,6 +44,7 @@ impl Dl85InternalClassifier {
         cache_init: usize,
         cache_init_size: usize,
         custom_function: Option<PyObject>,
+        function_type: Option<usize>,
     ) -> Self {
         let max_error = match error == -1 {
             true => <usize>::MAX,
@@ -100,6 +101,12 @@ impl Dl85InternalClassifier {
             _ => panic!("Invalid discrepancy strategy"),
         };
 
+        let custom_function_type = match function_type {
+            Some(0) => Some(PythonFunctionData::ClassSupports),
+            Some(1) => Some(PythonFunctionData::Tids),
+            _ => None,
+        };
+
         let constraints = Constraints {
             max_depth,
             min_sup,
@@ -113,6 +120,7 @@ impl Dl85InternalClassifier {
             cache_init_size,
             discrepancy_budget,
             discrepancy_strategy,
+            python_function_data: custom_function_type,
         };
 
         let statistics = Statistics {
@@ -124,6 +132,7 @@ impl Dl85InternalClassifier {
             tree_error: 0,
             duration: Duration::default(),
         };
+
         // if custom_function.is_some() {
         //   if let Some(ref function) = custom_function {
         //       Python::with_gil(|py| {
@@ -189,6 +198,7 @@ impl Dl85InternalClassifier {
                 self.constraints.one_time_sort,
                 heuristic.as_mut(),
                 self.custom_function.clone(),
+                self.constraints.python_function_data,
             );
 
             algorithm.fit(&mut structure);

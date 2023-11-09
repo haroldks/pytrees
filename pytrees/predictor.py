@@ -22,6 +22,7 @@ class Predictor:
         "cache_init",
         "cache_init_size",
         "custom_function",
+        "custom_function_type",
     ]
 
     LESS_GREEDY_ARGS = ["min_sup", "max_depth", "data_structure", "fit_method"]

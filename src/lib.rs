@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![warn(clippy::too_many_arguments)]
 use crate::algorithms::algorithm_trait::Algorithm;
 use crate::algorithms::info_gain::InfoGain;
 use crate::algorithms::lgdt::LGDT;

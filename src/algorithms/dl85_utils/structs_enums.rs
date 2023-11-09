@@ -19,6 +19,7 @@ pub struct Constraints {
     pub cache_init_size: usize,
     pub discrepancy_budget: usize,
     pub discrepancy_strategy: DiscrepancyStrategy,
+    pub python_function_data: Option<PythonFunctionData>,
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub(crate) struct Branching {
@@ -100,6 +101,12 @@ pub enum DiscrepancyStrategy {
     None,
     Incremental,
     Double,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum PythonFunctionData {
+    ClassSupports,
+    Tids,
 }
 
 // End: Enums used in the algorithm

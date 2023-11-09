@@ -67,6 +67,7 @@ where
             cache_init_size,
             discrepancy_budget,
             discrepancy_strategy,
+            python_function_data: None,
         };
         Self {
             constraints,
@@ -939,6 +940,7 @@ mod dl85_test {
             0,
             false,
             heuristic.as_mut(),
+            None,
             None,
         );
         algo.fit(&mut structure);

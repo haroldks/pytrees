@@ -204,7 +204,6 @@ impl<'data> Structure for RSparseBitsetStructure<'data> {
                 let limit = *limit as usize;
                 for i in 0..limit + 1 {
                     let cursor = self.index[i];
-                    println!("Cursor: {}", cursor);
                     let val = self.state[cursor].last().unwrap_or(&0);
                     let mut word = *val;
                     while word != 0 {
@@ -367,7 +366,6 @@ impl<'data> RSparseBitsetStructure<'data> {
                                 break;
                             }
                         } else {
-                            if self.position.len() == 2 {}
                             let word_count = word.count_ones() as Support;
                             self.support += word_count;
                             if self.num_labels == 2 {

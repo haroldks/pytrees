@@ -3,7 +3,7 @@ use crate::algorithms::dl85_utils::slb::{SimilarDatasets, Similarity};
 use crate::algorithms::dl85_utils::stop_conditions::StopConditions;
 use crate::algorithms::dl85_utils::structs_enums::{
     Branching, BranchingType, CacheInit, Constraints, DiscrepancyStrategy, HasIntersected,
-    LowerBoundHeuristic, ReturnCondition, Specialization, Statistics,
+    LowerBoundHeuristic, PythonFunctionData, ReturnCondition, Specialization, Statistics,
 };
 use crate::algorithms::lgdt::LGDT;
 use crate::algorithms::murtree::MurTree;
@@ -54,6 +54,7 @@ where
         one_time_sort: bool,
         heuristic: &'heur mut H,
         custom_function: Option<PyObject>, // This will be used for fast computation of the error using support classes
+        python_function_data: Option<PythonFunctionData>,
     ) -> Self {
         let constraints = Constraints {
             max_depth,
@@ -68,6 +69,7 @@ where
             cache_init_size,
             discrepancy_budget: 0,
             discrepancy_strategy: DiscrepancyStrategy::None,
+            python_function_data,
         };
         Self {
             constraints,
@@ -133,7 +135,7 @@ where
 
         // BEGIN STEP: Setup the root
         let mut root_data = T::new();
-        let root_leaf_error = self.leaf_error(structure.labels_support());
+        let root_leaf_error = self.leaf_error(structure);
         root_data.set_node_error(root_leaf_error.0);
         root_data.set_leaf_error(root_leaf_error.0);
         let root = TrieNode::new(root_data);
@@ -454,7 +456,7 @@ where
     }
 
     fn use_custom_error(&self) -> bool {
-        return self.custom_function.is_some();
+        self.custom_function.is_some()
     }
 
     fn compute_custom_error(&self, classes_support: &[usize]) -> (usize, usize) {
@@ -496,8 +498,7 @@ where
     }
 
     fn init_data(&mut self, structure: &mut RSparseBitsetStructure, index: Index) {
-        let classes_support = structure.labels_support();
-        let (leaf_error, class) = self.leaf_error(classes_support);
+        let (leaf_error, class) = self.leaf_error(structure);
         if let Some(node) = self.cache.get_node_mut(index) {
             node.value.set_leaf_error(leaf_error);
             node.value.set_class(class)
@@ -659,10 +660,23 @@ where
         }
     }
 
-    fn leaf_error(&self, classes_support: &[usize]) -> (usize, usize) {
+    fn leaf_error(&self, structure: &mut RSparseBitsetStructure) -> (usize, usize) {
         match self.use_custom_error() {
-            true => self.compute_custom_error(classes_support),
-            false => Self::misclassification_error(classes_support),
+            true => {
+                let error = match self.constraints.python_function_data {
+                    None => {
+                        panic!("Python function data is None. It should not have come here.")
+                    }
+                    Some(PythonFunctionData::ClassSupports) => {
+                        self.compute_custom_error(structure.labels_support())
+                    }
+                    Some(PythonFunctionData::Tids) => {
+                        self.compute_custom_error(&structure.get_tids())
+                    }
+                };
+                error
+            }
+            false => Self::misclassification_error(structure.labels_support()),
         }
     }
 
@@ -878,6 +892,7 @@ mod dl85_test {
             0,
             false,
             heuristic.as_mut(),
+            None,
             None,
         );
         algo.fit(&mut structure);

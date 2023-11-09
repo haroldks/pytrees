@@ -291,7 +291,7 @@ impl<'data> BitsetStructure<'data> {
     }
 
     pub(crate) fn get_last_state_bitset(&self) -> Bitset {
-        let state = self.state.last().map(|state| state.clone());
+        let state = self.state.last().cloned();
         if let Some(state) = state {
             return state;
         }

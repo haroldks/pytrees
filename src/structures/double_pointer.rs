@@ -81,11 +81,7 @@ impl<'data> Structure for DoublePointerStructure<'data> {
             self.support = 0;
             return 0;
         }
-        if is_left {
-            self.support = end - start;
-        } else {
-            self.support = end - start;
-        }
+        let support = end - start;
         self.support
     }
 
@@ -114,7 +110,7 @@ impl<'data> Structure for DoublePointerStructure<'data> {
 
     fn temp_push(&mut self, item: Item) -> Support {
         let statue_value = self.pushing(item);
-        return statue_value.4;
+        statue_value.4
     }
 
     fn reset(&mut self) {
@@ -231,7 +227,7 @@ impl<'data> DoublePointerStructure<'data> {
         } else {
             support = end - i;
         }
-        return State(start, i, end, is_left, support);
+        State(start, i, end, is_left, support)
     }
 
     fn push_state(&mut self, state_value: State) {

@@ -45,3 +45,8 @@ class DataStructure(IntEnum):
     Horizontal = (1,)
     Bitset = (2,)
     ReversibleBitset = (3,)
+
+
+class CustomFunctionDataType(IntEnum):
+    ClassSupports = 0
+    Tids = 1

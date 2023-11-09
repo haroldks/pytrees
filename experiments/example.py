@@ -46,17 +46,22 @@ from graphviz import Source
 
 
 def miss_class_error(vector, X=2):
-    print(vector)
-    return np.min(vector), np.argmax(vector)
+    return np.sum(vector) - np.max(vector), np.argmax(vector)
 
 
 # print(miss_class_error([32, 34, 45]))
 
-clf = DL85Classifier(min_sup=1, max_depth=2, custom_function=miss_class_error)
-dataset = np.genfromtxt("../test_data/iris_multi.txt", delimiter=" ")
+clf = DL85Classifier(
+    min_sup=1,
+    max_depth=4,
+    custom_function=miss_class_error,
+    specialization=Specialization.None_,
+)
+dataset = np.genfromtxt("../test_data/anneal.txt", delimiter=" ")
 X, y = dataset[:, 1:], dataset[:, 0]
 clf.fit(X, y.astype(float))
 print(f"Train accuracy : {clf.tree_error_}")
+print(f"Statistics : {clf.statistics}")
 obj = Source(clf.export_to_graphviz_dot())
 obj.view(filename="iris_lgdt")
 

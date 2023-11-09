@@ -97,11 +97,6 @@ where
         self.statistics.train_distribution = [distribution[0], distribution[1]];
         self.statistics.num_samples = structure.support();
 
-        if self.use_custom_error() {
-            let classes_support = structure.labels_support();
-            self.compute_custom_error(classes_support);
-        }
-
         // END STEP : Setup everything in the statistics structures
 
         // BEGIN STEP: Setup the cache
@@ -138,7 +133,7 @@ where
 
         // BEGIN STEP: Setup the root
         let mut root_data = T::new();
-        let root_leaf_error = Self::leaf_error(structure.labels_support());
+        let root_leaf_error = self.leaf_error(structure.labels_support());
         root_data.set_node_error(root_leaf_error.0);
         root_data.set_leaf_error(root_leaf_error.0);
         let root = TrieNode::new(root_data);
@@ -462,18 +457,19 @@ where
         return self.custom_function.is_some();
     }
 
-    fn compute_custom_error(&self, classes_support: &[usize]) {
+    fn compute_custom_error(&self, classes_support: &[usize]) -> (usize, usize) {
+        let mut error: (usize, usize) = (0, 0);
         if let Some(ref function) = self.custom_function {
             Python::with_gil(|py| {
                 let cls_support = classes_support.to_vec();
-                let error: (usize, usize) = function
+                error = function
                     .call1(py, (cls_support,))
                     .unwrap()
                     .extract(py)
                     .unwrap();
-                println!("result = {:?}", error);
             });
         }
+        error
     }
 
     fn get_node_candidates(
@@ -500,14 +496,9 @@ where
     }
 
     fn init_data(&mut self, structure: &mut RSparseBitsetStructure, index: Index) {
-        if self.use_custom_error() {
-            let classes_support = structure.labels_support();
-            self.compute_custom_error(classes_support);
-        }
+        let classes_support = structure.labels_support();
+        let (leaf_error, class) = self.leaf_error(classes_support);
         if let Some(node) = self.cache.get_node_mut(index) {
-            let classes_support = structure.labels_support();
-            let (leaf_error, class) = Self::leaf_error(classes_support);
-
             node.value.set_leaf_error(leaf_error);
             node.value.set_class(class)
         }
@@ -668,7 +659,14 @@ where
         }
     }
 
-    fn leaf_error(classes_support: &[usize]) -> (usize, usize) {
+    fn leaf_error(&self, classes_support: &[usize]) -> (usize, usize) {
+        match self.use_custom_error() {
+            true => self.compute_custom_error(classes_support),
+            false => Self::misclassification_error(classes_support),
+        }
+    }
+
+    fn misclassification_error(classes_support: &[usize]) -> (usize, usize) {
         let mut max_idx = 0;
         let mut max_value = 0;
         let mut total = 0;
@@ -858,6 +856,7 @@ mod dl85_test {
     use crate::structures::caching::trie::Data;
     use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
     use crate::structures::structure_trait::Structure;
+    use itertools::MinMaxResult::NoElements;
 
     #[test]
     fn run_dl85() {
@@ -879,6 +878,7 @@ mod dl85_test {
             0,
             false,
             heuristic.as_mut(),
+            None,
         );
         algo.fit(&mut structure);
     }

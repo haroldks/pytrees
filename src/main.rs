@@ -23,6 +23,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use std::{process, thread};
 // use rayon::iter::IntoParallelIterator;
+use crate::algorithms::dl85_utils::structs_enums::HasIntersected::No;
 use clap::Parser;
 use rayon::prelude::*;
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -160,6 +161,7 @@ fn main() {
         0,
         false,
         heuristic.as_mut(),
+        None,
     );
     algo.fit(&mut structure);
     println!("--------------- Search Tree ---------------");

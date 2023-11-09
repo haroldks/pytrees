@@ -939,6 +939,7 @@ mod dl85_test {
             0,
             false,
             heuristic.as_mut(),
+            None,
         );
         algo.fit(&mut structure);
     }

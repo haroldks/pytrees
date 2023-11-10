@@ -133,24 +133,6 @@ impl Dl85InternalClassifier {
             duration: Duration::default(),
         };
 
-        // if custom_function.is_some() {
-        //   if let Some(ref function) = custom_function {
-        //       Python::with_gil(|py| {
-        //           let x: i32 = function.call1(py, (12,)).unwrap().extract(py).unwrap();
-        //           println!("result = {:?}", x);
-        //       });
-        //
-        //       Python::with_gil(|py| {
-        //           let x: i32 = function.call1(py, (50,)).unwrap().extract(py).unwrap();
-        //           println!("result = {:?}", x);
-        //       });
-        //   }
-        //
-        // }
-        // else {
-        //     println!("No custom function");
-        // }
-
         Self {
             heuristic,
             custom_function,

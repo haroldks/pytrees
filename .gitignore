@@ -197,8 +197,8 @@ experiments/generated_data/
 experiments/para*/
 experiments/plots_continuous_binned/
 
-!experiments/runtime_evaluation.py
-!experiments/synthetic_data.py
+!experiments/base_experiments.py
+!experiments/private_experiments/synthetic_data.py
 TODO.md
 *.csv
 experiments/ecai_exps/

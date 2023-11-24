@@ -9,7 +9,7 @@ from pytrees.experiments.utils.functions import (
     get_stats,
 )
 from pytrees.experiments.utils.models import (
-    CART,
+    C45,
     LGDT_BITSET,
     LGDT_SPARSE,
     LGDT_HZ,
@@ -40,7 +40,7 @@ DATA_FOLDERS = [
     "datasetsDL",
 ]
 
-MODELS = [LGDT_BITSET, LGDT_SPARSE, LGDT_HZ, CART, DL85]
+MODELS = [LGDT_BITSET, LGDT_SPARSE, LGDT_HZ, C45, DL85]
 
 
 def main():
@@ -61,7 +61,7 @@ def main():
             print(f"Inside :\t{folder_path}")
             for i, file in enumerate(os.listdir(folder_path)):
                 name = file.split(".")[0]
-                if name in [
+                if name in [  # These are test datasets and are too small
                     "small",
                     "small_",
                     "rsparse_dataset",

@@ -23,10 +23,10 @@ LGDT_IG = {
     ),
 }
 
-CART = {
+C45 = {
     "name": "cart",
     "instance": DecisionTreeClassifier(
-        criterion="gini", splitter="best", max_depth=0, min_samples_split=0
+        criterion="log_loss", splitter="best", max_depth=0, min_samples_split=0
     ),
 }
 

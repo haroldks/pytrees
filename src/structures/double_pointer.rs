@@ -81,7 +81,7 @@ impl<'data> Structure for DoublePointerStructure<'data> {
             self.support = 0;
             return 0;
         }
-        let support = end - start;
+        self.support = end - start;
         self.support
     }
 

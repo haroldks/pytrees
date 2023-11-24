@@ -1,33 +1,17 @@
-#![allow(unused)]
+// #![allow(unused)]
 #![warn(clippy::too_many_arguments)]
 use crate::algorithms::algorithm_trait::Algorithm;
-use crate::algorithms::info_gain::InfoGain;
-use crate::algorithms::lgdt::LGDT;
-use crate::algorithms::murtree::MurTree;
-use crate::dataset::binary_dataset::BinaryDataset;
-use crate::dataset::data_trait::Dataset;
-use crate::structures::binary_tree::{NodeData, Tree};
-use crate::structures::bitsets_structure::BitsetStructure;
-use crate::structures::horizontal_binary_structure::HorizontalBinaryStructure;
-use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
-use crate::structures::structure_trait::Structure;
-use crate::structures::structures_types::{Depth, Support};
-use std::time::{Duration, Instant};
 
-use crate::algorithms::dl85::DL85;
-use crate::algorithms::dl85_utils::structs_enums::{
-    Constraints, LowerBoundHeuristic, SortHeuristic, Specialization, Statistics,
-};
-use crate::algorithms::idk::IDK;
-use crate::heuristics::{GiniIndex, Heuristic, InformationGain, InformationGainRatio, NoHeuristic};
+use crate::dataset::data_trait::Dataset;
+
+use crate::structures::structure_trait::Structure;
+
+use crate::heuristics::Heuristic;
 use crate::pycore::less_greedy::{LGDTInternalClassifier, ParallelLGDTInternalClassifier};
 use crate::pycore::optimal::Dl85InternalClassifier;
-use crate::structures::caching::trie::Data;
-use crate::structures::raw_binary_structure::RawBinaryStructure;
-use log::info;
-use numpy::PyReadonlyArrayDyn;
+
 use pyo3::prelude::PyModule;
-use pyo3::{pyclass, pymodule, wrap_pymodule, IntoPy, PyObject, PyResult, Python};
+use pyo3::{pymodule, IntoPy, PyResult, Python};
 
 extern crate core;
 pub mod algorithms;
@@ -38,7 +22,7 @@ mod pycore;
 pub mod structures;
 
 #[pymodule]
-fn pytrees_internal(py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn pytrees_internal(py: Python<'_>, _m: &PyModule) -> PyResult<()> {
     let optimal_module = pyo3::wrap_pymodule!(optimal);
     py.import("sys")?
         .getattr("modules")?

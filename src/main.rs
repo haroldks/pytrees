@@ -4,34 +4,24 @@
 use crate::algorithms::algorithm_trait::Algorithm;
 use crate::algorithms::dl85::DL85;
 use crate::algorithms::dl85_utils::structs_enums::{
-    BranchingType, CacheInit, DiscrepancyStrategy, LowerBoundHeuristic, Specialization,
+    BranchingType, CacheInit, LowerBoundHeuristic, Specialization,
 };
-use crate::algorithms::idk::IDK;
-use crate::algorithms::info_gain::InfoGain;
-use crate::algorithms::lds_dl85::LDSDL85;
-use crate::algorithms::lgdt::LGDT;
-use crate::algorithms::murtree::MurTree;
 use crate::dataset::binary_dataset::BinaryDataset;
 use crate::dataset::data_trait::Dataset;
 use crate::heuristics::{GiniIndex, Heuristic, InformationGain, InformationGainRatio, NoHeuristic};
-use crate::structures::caching::trie::{Data, TrieNode};
+use crate::structures::caching::trie::Data;
 use crate::structures::reversible_sparse_bitsets_structure::RSparseBitsetStructure;
 use crate::structures::structure_trait::Structure;
 use itertools::Itertools;
-use ndarray::s;
+
 use rand::Rng;
-use std::sync::{Arc, Mutex};
-use std::time::Instant;
-use std::{process, thread};
-// use rayon::iter::IntoParallelIterator;
-use crate::algorithms::dl85_utils::structs_enums::HasIntersected::No;
+use std::process;
+
 use clap::Parser;
 use rayon::prelude::*;
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use serde_json::to_writer;
-use std::fs::File;
-use std::io::Error;
+
 use std::path::PathBuf;
 
 mod algorithms;
